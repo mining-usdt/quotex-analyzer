@@ -1,6 +1,6 @@
 """
-السيرفر الرئيسي لنظام التحليل والتنفيذ التلقائي على Quotex
-النسخة النهائية - لا تعدل فيها
+السيرفر الرئيسي لنظام Quotex Ultimate Bot
+النسخة الكاملة غير المختصرة - v8.0
 """
 
 import os
@@ -28,9 +28,9 @@ from quotex_client import QuotexClient
 
 # ===== تهيئة التطبيق =====
 app = FastAPI(
-    title="🔥 Quotex OTC Auto Trader ULTIMATE",
-    description="نظام تحليل وتنفيذ تلقائي مع إدارة مخاطر صارمة",
-    version="7.0.0"
+    title="🔥 Quotex Ultimate Auto Trader",
+    description="نظام تحليل وتداول تلقائي مع إدارة مخاطر صارمة",
+    version="8.0.0"
 )
 
 app.add_middleware(
@@ -51,19 +51,20 @@ QX_MIN_CONFIDENCE = int(os.getenv("QX_MIN_CONFIDENCE", 85))
 QX_DEFAULT_EXPIRY = int(os.getenv("QX_DEFAULT_EXPIRY", 60))
 
 # ===== متغيرات عالمية =====
-quotex_client = None
+quotex_client: Optional[QuotexClient] = None
 risk_manager = RiskManager(QX_RISK_PERCENT, QX_DAILY_LOSS_LIMIT)
 is_trading_enabled = False
-trading_log = []
-last_analysis = None
-last_trade_result = None
+trading_log: List[str] = []
+last_analysis: Optional[Dict] = None
+last_trade_result: Optional[Dict] = None
 connection_status = {
     "connected": False,
     "account_type": "demo",
     "balance": 0.0,
     "last_update": None
 }
-auto_trade_task = None
+auto_trade_task: Optional[asyncio.Task] = None
+trading_symbol: str = ""
 
 # ============================================================
 # ===== نقاط النهاية API =====
@@ -113,10 +114,12 @@ async def analyze_symbol(
     limit: int = Query(200, ge=30, le=500)
 ):
     """تحليل متقدم لزوج معين"""
+    global last_analysis
+    
     try:
         df = get_ohlc_data(symbol, '1min', limit)
-        if df is None:
-            return {"error": f"Could not fetch data for {symbol}"}
+        if df is None or len(df) < 30:
+            return {"error": f"لا يمكن جلب البيانات لـ {symbol}"}
         
         signal = SignalEngine.generate_signal(df)
         if "error" in signal:
@@ -128,10 +131,17 @@ async def analyze_symbol(
         signal["current_price"] = price or signal["current_price"]
         signal["timestamp"] = datetime.now().isoformat()
         
-        global last_analysis
-        last_analysis = signal
+        # إضافة اسم الزوج
+        pairs = get_forex_pairs()
+        for p in pairs:
+            if p["symbol"] == symbol:
+                signal["pair_name"] = p["name"]
+                signal["payout"] = p["payout"]
+                break
         
+        last_analysis = signal
         return signal
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -144,12 +154,40 @@ async def get_strong_signal(
     symbol: str = Query(None, description="رمز الزوج")
 ):
     """البحث عن إشارة قوية في زوج محدد"""
-    if not symbol:
-        return {"status": "error", "message": "الرجاء اختيار زوج"}
+    global last_analysis
     
+    if not symbol:
+        # البحث في جميع الأزواج
+        pairs = get_forex_pairs()
+        best_signal = None
+        best_confidence = 0
+        
+        for p in pairs:
+            try:
+                df = get_ohlc_data(p["symbol"], '1min', 200)
+                if df is None:
+                    continue
+                signal = SignalEngine.generate_signal(df)
+                if "error" in signal:
+                    continue
+                if signal.get("confidence", 0) > best_confidence and signal.get("action") in ["STRONG_BUY", "STRONG_SELL", "BUY", "SELL"]:
+                    signal["symbol"] = p["symbol"]
+                    signal["pair_name"] = p["name"]
+                    signal["payout"] = p["payout"]
+                    best_signal = signal
+                    best_confidence = signal.get("confidence", 0)
+            except:
+                continue
+        
+        if best_signal and best_confidence >= QX_MIN_CONFIDENCE:
+            last_analysis = best_signal
+            return {"status": "success", "signal": best_signal}
+        return {"status": "no_signal", "message": "لا توجد إشارات قوية"}
+    
+    # تحليل زوج محدد
     try:
         result = await analyze_symbol(symbol)
-        if result and result.get("action") in ["STRONG_BUY", "STRONG_SELL", "BUY", "SELL"]:
+        if isinstance(result, dict) and result.get("action") in ["STRONG_BUY", "STRONG_SELL", "BUY", "SELL"]:
             if result.get("confidence", 0) >= QX_MIN_CONFIDENCE:
                 return {"status": "success", "signal": result}
         return {"status": "no_signal", "message": "لا توجد إشارات قوية"}
@@ -163,8 +201,9 @@ async def get_strong_signal(
 @app.get("/api/v2/status")
 async def get_status():
     """حالة النظام الكاملة"""
-    global connection_status, is_trading_enabled, trading_log
+    global connection_status, is_trading_enabled, trading_log, last_trade_result
     
+    balance = 0.0
     if quotex_client and quotex_client.is_connected:
         try:
             balance = await quotex_client.get_balance()
@@ -173,18 +212,23 @@ async def get_status():
         except:
             pass
     
+    # الحصول على حالة إدارة المخاطر
+    risk_status = risk_manager.get_status() if risk_manager else {}
+    
     return {
         "status": "online",
         "trading_enabled": is_trading_enabled,
         "connected": quotex_client.is_connected if quotex_client else False,
         "account_type": connection_status["account_type"],
-        "balance": connection_status["balance"],
+        "balance": balance,
         "risk_percent": QX_RISK_PERCENT,
         "daily_loss_limit": QX_DAILY_LOSS_LIMIT,
         "daily_loss": risk_manager.daily_loss if risk_manager else 0,
         "min_confidence": QX_MIN_CONFIDENCE,
         "logs": trading_log[-20:] if trading_log else [],
-        "last_trade": last_trade_result
+        "last_trade": last_trade_result,
+        "trading_symbol": trading_symbol,
+        "risk_status": risk_status
     }
 
 # ============================================================
@@ -206,7 +250,6 @@ async def connect_to_quotex(
         quotex_client = QuotexClient(
             email=QX_EMAIL,
             password=QX_PASSWORD,
-            ssid=QX_SSID,
             is_demo=is_demo
         )
         
@@ -215,18 +258,19 @@ async def connect_to_quotex(
         if connected:
             connection_status["connected"] = True
             connection_status["account_type"] = "demo" if is_demo else "real"
-            connection_status["balance"] = await quotex_client.get_balance()
+            balance = await quotex_client.get_balance()
+            connection_status["balance"] = balance
             connection_status["last_update"] = datetime.now().isoformat()
             
             return {
                 "status": "success",
                 "message": f"✅ تم الاتصال بحساب {connection_status['account_type']}",
-                "balance": connection_status["balance"]
+                "balance": balance
             }
         else:
             return {
                 "status": "error",
-                "message": f"❌ فشل الاتصال: {quotex_client.last_error}"
+                "message": "❌ فشل الاتصال بـ Quotex"
             }
             
     except Exception as e:
@@ -239,9 +283,13 @@ async def connect_to_quotex(
 @app.post("/api/v2/disconnect")
 async def disconnect_from_quotex():
     """قطع الاتصال بـ Quotex"""
-    global quotex_client, connection_status, is_trading_enabled
+    global quotex_client, connection_status, is_trading_enabled, auto_trade_task
     
     is_trading_enabled = False
+    if auto_trade_task:
+        auto_trade_task.cancel()
+        auto_trade_task = None
+    
     connection_status["connected"] = False
     
     if quotex_client:
@@ -256,11 +304,10 @@ async def disconnect_from_quotex():
 
 @app.post("/api/v2/enable-trading")
 async def enable_trading(
-    bg_tasks: BackgroundTasks,
     symbol: str = Query(..., description="رمز الزوج")
 ):
     """تفعيل التداول التلقائي لزوج معين"""
-    global is_trading_enabled, auto_trade_task, last_trade_result
+    global is_trading_enabled, auto_trade_task, trading_symbol
     
     if not quotex_client or not quotex_client.is_connected:
         return {"status": "error", "message": "❌ غير متصل بـ Quotex"}
@@ -269,13 +316,15 @@ async def enable_trading(
         return {"status": "already_running", "message": "⏳ التداول مفعل بالفعل"}
     
     is_trading_enabled = True
-    bg_tasks.add_task(auto_trade_loop, symbol)
+    trading_symbol = symbol
+    auto_trade_task = asyncio.create_task(auto_trade_loop(symbol))
     
     return {
         "status": "success",
         "message": f"✅ تم تفعيل التداول التلقائي على {symbol}",
         "symbol": symbol
     }
+
 # ============================================================
 # ===== 8. إيقاف التداول التلقائي =====
 # ============================================================
@@ -283,8 +332,13 @@ async def enable_trading(
 @app.post("/api/v2/disable-trading")
 async def disable_trading():
     """إيقاف التداول التلقائي"""
-    global is_trading_enabled
+    global is_trading_enabled, auto_trade_task
+    
     is_trading_enabled = False
+    if auto_trade_task:
+        auto_trade_task.cancel()
+        auto_trade_task = None
+    
     return {"status": "success", "message": "⏹️ تم إيقاف التداول التلقائي"}
 
 # ============================================================
@@ -356,10 +410,11 @@ async def health_check():
     """فحص صحة النظام"""
     return {
         "status": "healthy",
-        "version": "7.0.0",
+        "version": "8.0.0",
         "timestamp": datetime.now().isoformat(),
         "connected": connection_status["connected"],
-        "trading_enabled": is_trading_enabled
+        "trading_enabled": is_trading_enabled,
+        "uptime": "running"
     }
 
 # ============================================================
@@ -368,26 +423,39 @@ async def health_check():
 
 async def auto_trade_loop(symbol: str):
     """حلقة التداول التلقائي"""
-    global is_trading_enabled, trading_log, last_trade_result, last_analysis
+    global is_trading_enabled, trading_log, last_trade_result, last_analysis, trading_symbol
     
     print(f"🚀 بدء التداول التلقائي على {symbol}")
     trading_log.append(f"🚀 بدء التداول التلقائي على {symbol}")
     
     scan_interval = 10
     expiry_seconds = QX_DEFAULT_EXPIRY
+    consecutive_failures = 0
+    max_failures = 5
     
     while is_trading_enabled:
         try:
-            # 1. التحليل
+            # 1. جلب البيانات وتحليلها
             print(f"🔍 تحليل {symbol}...")
-            analysis = await analyze_symbol(symbol, 200)
+            df = get_ohlc_data(symbol, '1min', 200)
             
+            if df is None or len(df) < 30:
+                print(f"⚠️ بيانات غير كافية لـ {symbol}")
+                await asyncio.sleep(scan_interval)
+                consecutive_failures += 1
+                if consecutive_failures >= max_failures:
+                    trading_log.append(f"⚠️ {symbol}: فشل جلب البيانات {max_failures} مرات متتالية")
+                    consecutive_failures = 0
+                continue
+            
+            analysis = SignalEngine.generate_signal(df)
             if "error" in analysis:
                 print(f"⚠️ خطأ في التحليل: {analysis['error']}")
                 await asyncio.sleep(scan_interval)
                 continue
             
             last_analysis = analysis
+            consecutive_failures = 0
             
             action = analysis.get("action", "NEUTRAL")
             confidence = analysis.get("confidence", 0)
@@ -396,6 +464,7 @@ async def auto_trade_loop(symbol: str):
             
             print(f"📊 الإشارة: {action} (الثقة: {confidence}%)")
             
+            # 2. التحقق من قوة الإشارة
             if action not in ["STRONG_BUY", "STRONG_SELL", "BUY", "SELL"]:
                 print(f"⏳ إشارة ضعيفة ({action})، انتظار...")
                 await asyncio.sleep(scan_interval)
@@ -406,14 +475,17 @@ async def auto_trade_loop(symbol: str):
                 await asyncio.sleep(scan_interval)
                 continue
             
+            # 3. التحقق من الاتصال
             if not quotex_client or not quotex_client.is_connected:
                 print("⚠️ فقدان الاتصال بـ Quotex، محاولة إعادة الاتصال...")
-                await quotex_client.connect()
-                if not quotex_client.is_connected:
+                if quotex_client:
+                    await quotex_client.connect()
+                if not quotex_client or not quotex_client.is_connected:
                     trading_log.append("❌ فشل إعادة الاتصال بـ Quotex")
                     await asyncio.sleep(30)
                     continue
             
+            # 4. التحقق من الرصيد والمخاطر
             balance = await quotex_client.get_balance()
             print(f"💰 الرصيد الحالي: ${balance:.2f}")
             
@@ -425,6 +497,7 @@ async def auto_trade_loop(symbol: str):
                 await asyncio.sleep(scan_interval)
                 continue
             
+            # 5. تنفيذ الصفقة
             position_size = risk_check["position_size"]
             direction = "CALL" if "BUY" in action else "PUT"
             
@@ -474,10 +547,15 @@ async def auto_trade_loop(symbol: str):
                 print(f"❌ فشل تنفيذ الصفقة: {error}")
                 trading_log.append(f"❌ {symbol}: فشل التنفيذ - {error}")
             
+            # 6. انتظار قبل الدورة التالية
             wait_time = max(5, expiry_seconds / 2)
             print(f"⏳ انتظار {wait_time} ثواني قبل الدورة التالية...")
             await asyncio.sleep(wait_time)
             
+        except asyncio.CancelledError:
+            print("⏹️ تم إلغاء مهمة التداول التلقائي")
+            trading_log.append("⏹️ تم إلغاء مهمة التداول التلقائي")
+            break
         except Exception as e:
             error_msg = f"⚠️ خطأ في حلقة التداول: {str(e)}"
             print(error_msg)
