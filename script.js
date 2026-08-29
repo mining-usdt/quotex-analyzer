@@ -1,6 +1,6 @@
 class UltimateAnalyzer {
     constructor() {
-        this.apiBase = 'http://127.0.0.1:8000';
+        this.apiBase = 'https://quotex-analyzer-1.onrender.com';
         this.continuousMode = false;
         this.continuousInterval = null;
         this.currentSymbol = null;
