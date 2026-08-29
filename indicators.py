@@ -45,8 +45,14 @@ class AdvancedIndicators:
     @staticmethod
     def calculate_ema(prices, period):
         if len(prices) < period:
-            return prices[-1] if prices else 0
+            return prices[-1] if len(prices) > 0 else 0
         return float(pd.Series(prices).ewm(span=period, adjust=False).mean().iloc[-1])
+
+    @staticmethod
+    def calculate_sma(prices, period=20):
+        if len(prices) < period:
+            return prices[-1] if len(prices) > 0 else 0
+        return float(pd.Series(prices).rolling(window=period).mean().iloc[-1])
 
     @staticmethod
     def calculate_stochastic(highs, lows, closes):
