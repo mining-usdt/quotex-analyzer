@@ -1,6 +1,6 @@
 """
 السيرفر الرئيسي لنظام Quotex Ultimate Bot
-النسخة الكاملة غير المختصرة - v8.0
+النسخة النهائية للـ Render - v10.0
 """
 
 import os
@@ -30,7 +30,7 @@ from quotex_client import QuotexClient
 app = FastAPI(
     title="🔥 Quotex Ultimate Auto Trader",
     description="نظام تحليل وتداول تلقائي مع إدارة مخاطر صارمة",
-    version="8.0.0"
+    version="10.0.0"
 )
 
 app.add_middleware(
@@ -49,6 +49,8 @@ QX_RISK_PERCENT = float(os.getenv("QX_RISK_PERCENT", 1.0))
 QX_DAILY_LOSS_LIMIT = float(os.getenv("QX_DAILY_LOSS_LIMIT", 10.0))
 QX_MIN_CONFIDENCE = int(os.getenv("QX_MIN_CONFIDENCE", 85))
 QX_DEFAULT_EXPIRY = int(os.getenv("QX_DEFAULT_EXPIRY", 60))
+QX_AUTO_START = os.getenv("QX_AUTO_START", "true").lower() == "true"
+QX_DEFAULT_SYMBOL = os.getenv("QX_DEFAULT_SYMBOL", "EURUSD")
 
 # ===== متغيرات عالمية =====
 quotex_client: Optional[QuotexClient] = None
@@ -64,7 +66,8 @@ connection_status = {
     "last_update": None
 }
 auto_trade_task: Optional[asyncio.Task] = None
-trading_symbol: str = ""
+trading_symbol: str = QX_DEFAULT_SYMBOL
+is_auto_connecting = False
 
 # ============================================================
 # ===== نقاط النهاية API =====
@@ -74,26 +77,50 @@ trading_symbol: str = ""
 async def serve_index():
     """تقديم الصفحة الرئيسية"""
     try:
-        with open("index.html", "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read())
-    except FileNotFoundError:
-        return HTMLResponse(content="<h1>index.html not found</h1>")
+        # محاولة قراءة index.html
+        html_path = os.path.join(os.path.dirname(__file__), "index.html")
+        if os.path.exists(html_path):
+            with open(html_path, "r", encoding="utf-8") as f:
+                return HTMLResponse(content=f.read())
+        else:
+            # صفحة HTML مدمجة في حال عدم وجود الملف
+            return HTMLResponse(content="""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Quotex Bot</title>
+                <style>
+                    body { font-family: Arial; background: #0a0a0f; color: white; text-align: center; padding: 50px; }
+                    .status { color: #00ff88; }
+                    .error { color: #ff4444; }
+                </style>
+            </head>
+            <body>
+                <h1>🔥 Quotex Ultimate Bot</h1>
+                <p class="status">✅ السيرفر يعمل بنجاح</p>
+                <p>API متاحة على: <code>/api/v2/</code></p>
+                <p>حالة النظام: <a href="/health">/health</a></p>
+            </body>
+            </html>
+            """)
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>Error: {str(e)}</h1>")
 
 @app.get("/style.css", response_class=FileResponse)
 async def serve_css():
     """تقديم ملف CSS"""
-    try:
-        return FileResponse("style.css")
-    except FileNotFoundError:
-        return {"error": "style.css not found"}
+    css_path = os.path.join(os.path.dirname(__file__), "style.css")
+    if os.path.exists(css_path):
+        return FileResponse(css_path)
+    return JSONResponse({"error": "style.css not found"}, status_code=404)
 
 @app.get("/script.js", response_class=FileResponse)
 async def serve_js():
     """تقديم ملف JavaScript"""
-    try:
-        return FileResponse("script.js")
-    except FileNotFoundError:
-        return {"error": "script.js not found"}
+    js_path = os.path.join(os.path.dirname(__file__), "script.js")
+    if os.path.exists(js_path):
+        return FileResponse(js_path)
+    return JSONResponse({"error": "script.js not found"}, status_code=404)
 
 # ============================================================
 # ===== 1. الأزواج =====
@@ -240,10 +267,15 @@ async def connect_to_quotex(
     account_type: str = Query("demo", description="نوع الحساب: demo أو real")
 ):
     """الاتصال بـ Quotex"""
-    global quotex_client, connection_status
+    global quotex_client, connection_status, is_auto_connecting
     
     if quotex_client and quotex_client.is_connected:
         return {"status": "already_connected", "message": "✅ تم الاتصال بالفعل"}
+    
+    if is_auto_connecting:
+        return {"status": "connecting", "message": "⏳ جاري الاتصال..."}
+    
+    is_auto_connecting = True
     
     try:
         is_demo = account_type.lower() == "demo"
@@ -262,18 +294,26 @@ async def connect_to_quotex(
             connection_status["balance"] = balance
             connection_status["last_update"] = datetime.now().isoformat()
             
+            is_auto_connecting = False
+            
+            # بدء التداول التلقائي فوراً
+            if QX_AUTO_START and not is_trading_enabled:
+                await start_auto_trading()
+            
             return {
                 "status": "success",
                 "message": f"✅ تم الاتصال بحساب {connection_status['account_type']}",
                 "balance": balance
             }
         else:
+            is_auto_connecting = False
             return {
                 "status": "error",
-                "message": "❌ فشل الاتصال بـ Quotex"
+                "message": f"❌ فشل الاتصال بـ Quotex: {quotex_client.last_error}"
             }
             
     except Exception as e:
+        is_auto_connecting = False
         return {"status": "error", "message": f"❌ خطأ: {str(e)}"}
 
 # ============================================================
@@ -319,6 +359,8 @@ async def enable_trading(
     trading_symbol = symbol
     auto_trade_task = asyncio.create_task(auto_trade_loop(symbol))
     
+    trading_log.append(f"🚀 بدء التداول التلقائي على {symbol}")
+    
     return {
         "status": "success",
         "message": f"✅ تم تفعيل التداول التلقائي على {symbol}",
@@ -338,6 +380,8 @@ async def disable_trading():
     if auto_trade_task:
         auto_trade_task.cancel()
         auto_trade_task = None
+    
+    trading_log.append("⏹️ تم إيقاف التداول التلقائي")
     
     return {"status": "success", "message": "⏹️ تم إيقاف التداول التلقائي"}
 
@@ -402,7 +446,7 @@ async def get_live_price_endpoint(symbol: str):
     }
 
 # ============================================================
-# ===== 13. صحية النظام =====
+# ===== 13. صحة النظام =====
 # ============================================================
 
 @app.get("/health")
@@ -410,7 +454,7 @@ async def health_check():
     """فحص صحة النظام"""
     return {
         "status": "healthy",
-        "version": "8.0.0",
+        "version": "10.0.0",
         "timestamp": datetime.now().isoformat(),
         "connected": connection_status["connected"],
         "trading_enabled": is_trading_enabled,
@@ -418,7 +462,29 @@ async def health_check():
     }
 
 # ============================================================
-# ===== دالة التداول التلقائي (تعمل في الخلفية) =====
+# ===== دالة بدء التداول التلقائي =====
+# ============================================================
+
+async def start_auto_trading():
+    """بدء التداول التلقائي مع الزوج الافتراضي"""
+    global is_trading_enabled, auto_trade_task, trading_symbol
+    
+    if is_trading_enabled:
+        return
+    
+    if not quotex_client or not quotex_client.is_connected:
+        print("⚠️ لا يمكن بدء التداول - غير متصل")
+        return
+    
+    is_trading_enabled = True
+    trading_symbol = QX_DEFAULT_SYMBOL
+    auto_trade_task = asyncio.create_task(auto_trade_loop(QX_DEFAULT_SYMBOL))
+    
+    print(f"🚀 بدء التداول التلقائي على {QX_DEFAULT_SYMBOL}")
+    trading_log.append(f"🚀 بدء التداول التلقائي على {QX_DEFAULT_SYMBOL}")
+
+# ============================================================
+# ===== حلقة التداول التلقائي =====
 # ============================================================
 
 async def auto_trade_loop(symbol: str):
@@ -432,25 +498,43 @@ async def auto_trade_loop(symbol: str):
     expiry_seconds = QX_DEFAULT_EXPIRY
     consecutive_failures = 0
     max_failures = 5
+    trades_today = 0
+    max_trades_per_day = 30
     
     while is_trading_enabled:
         try:
-            # 1. جلب البيانات وتحليلها
-            print(f"🔍 تحليل {symbol}...")
+            # 1. التحقق من الاتصال
+            if not quotex_client or not quotex_client.is_connected:
+                print("⚠️ فقدان الاتصال، محاولة إعادة الاتصال...")
+                trading_log.append("⚠️ فقدان الاتصال، محاولة إعادة الاتصال...")
+                
+                if quotex_client:
+                    connected = await quotex_client.connect()
+                    if not connected:
+                        await asyncio.sleep(30)
+                        continue
+                else:
+                    is_demo = QX_ACCOUNT.lower() == "practice"
+                    quotex_client = QuotexClient(QX_EMAIL, QX_PASSWORD, is_demo)
+                    connected = await quotex_client.connect()
+                    if not connected:
+                        await asyncio.sleep(30)
+                        continue
+            
+            # 2. جلب البيانات وتحليلها
             df = get_ohlc_data(symbol, '1min', 200)
             
             if df is None or len(df) < 30:
-                print(f"⚠️ بيانات غير كافية لـ {symbol}")
                 await asyncio.sleep(scan_interval)
                 consecutive_failures += 1
                 if consecutive_failures >= max_failures:
-                    trading_log.append(f"⚠️ {symbol}: فشل جلب البيانات {max_failures} مرات متتالية")
+                    trading_log.append(f"⚠️ {symbol}: فشل جلب البيانات {max_failures} مرات")
                     consecutive_failures = 0
+                    await asyncio.sleep(60)
                 continue
             
             analysis = SignalEngine.generate_signal(df)
             if "error" in analysis:
-                print(f"⚠️ خطأ في التحليل: {analysis['error']}")
                 await asyncio.sleep(scan_interval)
                 continue
             
@@ -462,30 +546,24 @@ async def auto_trade_loop(symbol: str):
             price = analysis.get("current_price", 0)
             time_remaining = analysis.get("time_remaining_minutes", 0)
             
-            print(f"📊 الإشارة: {action} (الثقة: {confidence}%)")
+            print(f"📊 الإشارة: {action} (الثقة: {confidence}%) | {symbol} | السعر: {price}")
             
-            # 2. التحقق من قوة الإشارة
+            # 3. التحقق من قوة الإشارة
             if action not in ["STRONG_BUY", "STRONG_SELL", "BUY", "SELL"]:
-                print(f"⏳ إشارة ضعيفة ({action})، انتظار...")
                 await asyncio.sleep(scan_interval)
                 continue
             
             if confidence < QX_MIN_CONFIDENCE:
-                print(f"⏳ الثقة منخفضة ({confidence}% < {QX_MIN_CONFIDENCE}%)، انتظار...")
                 await asyncio.sleep(scan_interval)
                 continue
             
-            # 3. التحقق من الاتصال
-            if not quotex_client or not quotex_client.is_connected:
-                print("⚠️ فقدان الاتصال بـ Quotex، محاولة إعادة الاتصال...")
-                if quotex_client:
-                    await quotex_client.connect()
-                if not quotex_client or not quotex_client.is_connected:
-                    trading_log.append("❌ فشل إعادة الاتصال بـ Quotex")
-                    await asyncio.sleep(30)
-                    continue
+            # 4. التحقق من الحد الأقصى للصفقات اليومية
+            if trades_today >= max_trades_per_day:
+                print(f"⏳ تم الوصول للحد الأقصى للصفقات اليومية ({max_trades_per_day})")
+                await asyncio.sleep(60)
+                continue
             
-            # 4. التحقق من الرصيد والمخاطر
+            # 5. التحقق من الرصيد والمخاطر
             balance = await quotex_client.get_balance()
             print(f"💰 الرصيد الحالي: ${balance:.2f}")
             
@@ -493,61 +571,74 @@ async def auto_trade_loop(symbol: str):
             
             if not risk_check["allowed"]:
                 print(f"⛔ {risk_check['reason']}")
-                trading_log.append(f"⛔ {risk_check['reason']}")
                 await asyncio.sleep(scan_interval)
                 continue
             
-            # 5. تنفيذ الصفقة
+            # 6. تنفيذ الصفقة
             position_size = risk_check["position_size"]
             direction = "CALL" if "BUY" in action else "PUT"
             
-            print(f"📈 تنفيذ {direction} بمبلغ ${position_size:.2f} (الثقة: {confidence}%)")
-            trading_log.append(
-                f"📈 {symbol} | {direction} | ${position_size:.2f} | "
-                f"الثقة: {confidence}% | الوقت: {time_remaining:.1f} دقيقة"
-            )
-            
-            trade_result = await quotex_client.execute_trade(
-                symbol=symbol,
-                direction=direction,
-                amount=position_size,
-                expiry=expiry_seconds
-            )
-            
-            if trade_result.get("success"):
-                trade_id = trade_result.get("trade_id")
-                print(f"✅ تم تنفيذ {direction} بمبلغ ${position_size:.2f} (ID: {trade_id})")
-                trading_log.append(f"✅ {symbol}: تم تنفيذ {direction} بمبلغ ${position_size:.2f}")
-                
-                print(f"⏳ انتظار نتيجة الصفقة {trade_id}...")
-                result = await quotex_client.get_trade_result(trade_id, timeout=expiry_seconds + 10)
-                
-                if result.get("success"):
-                    profit = result.get("profit", 0)
-                    trade_result_status = result.get("result", "unknown")
+            trade_executed = False
+            for retry in range(3):
+                try:
+                    print(f"📈 تنفيذ {direction} بمبلغ ${position_size:.2f} (الثقة: {confidence}%)")
+                    trading_log.append(
+                        f"📈 {symbol} | {direction} | ${position_size:.2f} | "
+                        f"الثقة: {confidence}% | الوقت: {time_remaining:.1f} دقيقة"
+                    )
                     
-                    risk_manager.record_trade(profit, {
-                        "symbol": symbol,
-                        "direction": direction,
-                        "amount": position_size,
-                        "profit": profit,
-                        "result": trade_result_status
-                    })
+                    trade_result = await quotex_client.execute_trade(
+                        symbol=symbol,
+                        direction=direction,
+                        amount=position_size,
+                        expiry=expiry_seconds
+                    )
                     
-                    last_trade_result = result
-                    
-                    profit_str = f"+${profit:.2f}" if profit > 0 else f"${profit:.2f}"
-                    print(f"💰 نتيجة الصفقة: {trade_result_status} | {profit_str}")
-                    trading_log.append(f"💰 {symbol}: {trade_result_status} | {profit_str}")
-                else:
-                    print(f"⚠️ فشل الحصول على نتيجة الصفقة: {result.get('error')}")
-                    trading_log.append(f"⚠️ {symbol}: فشل الحصول على نتيجة")
-            else:
-                error = trade_result.get("error", "خطأ غير معروف")
-                print(f"❌ فشل تنفيذ الصفقة: {error}")
-                trading_log.append(f"❌ {symbol}: فشل التنفيذ - {error}")
+                    if trade_result.get("success"):
+                        trade_executed = True
+                        trade_id = trade_result.get("trade_id")
+                        print(f"✅ تم تنفيذ {direction} بمبلغ ${position_size:.2f} (ID: {trade_id})")
+                        trading_log.append(f"✅ {symbol}: تم تنفيذ {direction} بمبلغ ${position_size:.2f}")
+                        
+                        print(f"⏳ انتظار نتيجة الصفقة {trade_id}...")
+                        result = await quotex_client.get_trade_result(trade_id, timeout=expiry_seconds + 15)
+                        
+                        if result.get("success"):
+                            profit = result.get("profit", 0)
+                            trade_result_status = result.get("result", "unknown")
+                            
+                            risk_manager.record_trade(profit, {
+                                "symbol": symbol,
+                                "direction": direction,
+                                "amount": position_size,
+                                "profit": profit,
+                                "result": trade_result_status
+                            })
+                            
+                            last_trade_result = result
+                            trades_today += 1
+                            
+                            profit_str = f"+${profit:.2f}" if profit > 0 else f"${profit:.2f}"
+                            print(f"💰 نتيجة الصفقة: {trade_result_status} | {profit_str}")
+                            trading_log.append(f"💰 {symbol}: {trade_result_status} | {profit_str}")
+                        else:
+                            print(f"⚠️ فشل الحصول على نتيجة الصفقة: {result.get('error')}")
+                            trading_log.append(f"⚠️ {symbol}: فشل الحصول على نتيجة")
+                        break
+                    else:
+                        error = trade_result.get("error", "خطأ غير معروف")
+                        print(f"❌ فشل تنفيذ الصفقة (محاولة {retry + 1}): {error}")
+                        trading_log.append(f"❌ {symbol}: فشل التنفيذ - {error}")
+                        await asyncio.sleep(5)
+                        
+                except Exception as e:
+                    print(f"⚠️ خطأ في التنفيذ (محاولة {retry + 1}): {e}")
+                    await asyncio.sleep(5)
             
-            # 6. انتظار قبل الدورة التالية
+            if not trade_executed:
+                trading_log.append(f"⚠️ {symbol}: فشل تنفيذ الصفقة بعد 3 محاولات")
+            
+            # 7. انتظار قبل الدورة التالية
             wait_time = max(5, expiry_seconds / 2)
             print(f"⏳ انتظار {wait_time} ثواني قبل الدورة التالية...")
             await asyncio.sleep(wait_time)
@@ -560,10 +651,65 @@ async def auto_trade_loop(symbol: str):
             error_msg = f"⚠️ خطأ في حلقة التداول: {str(e)}"
             print(error_msg)
             trading_log.append(error_msg)
-            await asyncio.sleep(10)
+            await asyncio.sleep(15)
     
     print("⏹️ تم إيقاف التداول التلقائي")
     trading_log.append("⏹️ تم إيقاف التداول التلقائي")
+
+# ============================================================
+# ===== التشغيل التلقائي عند بدء السيرفر =====
+# ============================================================
+
+@app.on_event("startup")
+async def startup_event():
+    """تشغيل التداول التلقائي عند بدء السيرفر"""
+    print("=" * 60)
+    print("🔥 Quotex Ultimate Bot v10.0 - التشغيل التلقائي")
+    print("=" * 60)
+    
+    if QX_AUTO_START:
+        print("🔧 تفعيل وضع التشغيل التلقائي...")
+        asyncio.create_task(auto_connect_and_start())
+    else:
+        print("⏸️ وضع التشغيل التلقائي معطل (QX_AUTO_START=false)")
+
+async def auto_connect_and_start():
+    """الاتصال التلقائي وبدء التداول"""
+    global quotex_client, connection_status
+    
+    try:
+        await asyncio.sleep(3)
+        
+        print("🔌 محاولة الاتصال التلقائي بـ Quotex...")
+        
+        is_demo = QX_ACCOUNT.lower() == "practice"
+        quotex_client = QuotexClient(QX_EMAIL, QX_PASSWORD, is_demo)
+        
+        connected = await quotex_client.connect()
+        
+        if connected:
+            connection_status["connected"] = True
+            connection_status["account_type"] = "demo" if is_demo else "real"
+            balance = await quotex_client.get_balance()
+            connection_status["balance"] = balance
+            connection_status["last_update"] = datetime.now().isoformat()
+            
+            print(f"✅ تم الاتصال التلقائي (الرصيد: ${balance:.2f})")
+            trading_log.append(f"✅ تم الاتصال التلقائي (الرصيد: ${balance:.2f})")
+            
+            await start_auto_trading()
+        else:
+            print(f"❌ فشل الاتصال التلقائي: {quotex_client.last_error}")
+            trading_log.append(f"❌ فشل الاتصال التلقائي: {quotex_client.last_error}")
+            
+            await asyncio.sleep(30)
+            asyncio.create_task(auto_connect_and_start())
+            
+    except Exception as e:
+        print(f"❌ خطأ في التشغيل التلقائي: {e}")
+        trading_log.append(f"❌ خطأ في التشغيل التلقائي: {e}")
+        await asyncio.sleep(30)
+        asyncio.create_task(auto_connect_and_start())
 
 # ============================================================
 # ===== التشغيل =====

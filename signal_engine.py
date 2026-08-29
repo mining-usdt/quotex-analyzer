@@ -1,6 +1,5 @@
 """
-محرك الإشارات المتقدم
-10 استراتيجيات تحليل فني مع نظام تسجيل ذكي
+محرك الإشارات المتقدم - 12 استراتيجية تحليل فني
 """
 
 import pandas as pd
@@ -48,9 +47,7 @@ class SignalEngine:
         score = 0
         signals = []
         
-        # ------------------------------------------------------------
         # استراتيجية 1: RSI
-        # ------------------------------------------------------------
         if rsi < 25:
             score += 25
             signals.append({"name": "RSI تشبع شرائي قوي", "type": "BUY", "score": 25})
@@ -64,9 +61,7 @@ class SignalEngine:
             score -= 15
             signals.append({"name": "RSI تشبع بيعي", "type": "SELL", "score": -15})
         
-        # ------------------------------------------------------------
         # استراتيجية 2: MACD
-        # ------------------------------------------------------------
         if macd["histogram"] > 0 and macd["macd"] > macd["signal"]:
             if macd["histogram"] > 0.0005:
                 score += 20
@@ -82,9 +77,7 @@ class SignalEngine:
                 score -= 12
                 signals.append({"name": "MACD هبوط", "type": "SELL", "score": -12})
         
-        # ------------------------------------------------------------
         # استراتيجية 3: بولينجر باند
-        # ------------------------------------------------------------
         if bollinger["lower"] and current_price <= bollinger["lower"] * 1.003:
             score += 15
             signals.append({"name": "Bollinger أسفل النطاق", "type": "BUY", "score": 15})
@@ -92,9 +85,7 @@ class SignalEngine:
             score -= 15
             signals.append({"name": "Bollinger أعلى النطاق", "type": "SELL", "score": -15})
         
-        # ------------------------------------------------------------
         # استراتيجية 4: ستوكاستيك
-        # ------------------------------------------------------------
         if stoch["k"] < 20 and stoch["d"] < 20 and stoch["k"] > stoch["d"]:
             score += 12
             signals.append({"name": "Stochastic تشبع شرائي", "type": "BUY", "score": 12})
@@ -102,9 +93,7 @@ class SignalEngine:
             score -= 12
             signals.append({"name": "Stochastic تشبع بيعي", "type": "SELL", "score": -12})
         
-        # ------------------------------------------------------------
         # استراتيجية 5: الاتجاه (EMAs)
-        # ------------------------------------------------------------
         if ema9 > ema21 and ema21 > ema50 and current_price > ema9:
             if ema9 - ema21 > 0.005:
                 score += 25
@@ -120,9 +109,7 @@ class SignalEngine:
                 score -= 15
                 signals.append({"name": "اتجاه هابط", "type": "SELL", "score": -15})
         
-        # ------------------------------------------------------------
         # استراتيجية 6: SMA
-        # ------------------------------------------------------------
         if current_price > sma20 * 1.005:
             score += 8
             signals.append({"name": "فوق SMA20", "type": "BUY", "score": 8})
@@ -130,9 +117,7 @@ class SignalEngine:
             score -= 8
             signals.append({"name": "تحت SMA20", "type": "SELL", "score": -8})
         
-        # ------------------------------------------------------------
         # استراتيجية 7: الدعم والمقاومة
-        # ------------------------------------------------------------
         support = min(lows[-20:])
         resistance = max(highs[-20:])
         
@@ -143,9 +128,7 @@ class SignalEngine:
             score -= 10
             signals.append({"name": "ارتداد من المقاومة", "type": "SELL", "score": -10})
         
-        # ------------------------------------------------------------
         # استراتيجية 8: أنماط الشموع
-        # ------------------------------------------------------------
         if len(closes) > 3:
             # نمط الابتلاع الصاعد (Bullish Engulfing)
             if (closes[-1] > opens[-1] and closes[-2] < opens[-2] and
@@ -173,9 +156,7 @@ class SignalEngine:
                 score -= 10
                 signals.append({"name": "نمط رجل معلق هابط", "type": "SELL", "score": -10})
         
-        # ------------------------------------------------------------
-        # استراتيجية 9: ADX (قوة الاتجاه)
-        # ------------------------------------------------------------
+        # استراتيجية 9: ADX
         if adx > 25:
             if ema9 > ema21:
                 score += 8
@@ -184,9 +165,7 @@ class SignalEngine:
                 score -= 8
                 signals.append({"name": "اتجاه قوي هابط", "type": "SELL", "score": -8})
         
-        # ------------------------------------------------------------
         # استراتيجية 10: إيشيموكو
-        # ------------------------------------------------------------
         if current_price > ichimoku["senkou_a"] and current_price > ichimoku["senkou_b"]:
             score += 10
             signals.append({"name": "فوق سحابة إيشيموكو", "type": "BUY", "score": 10})
@@ -194,9 +173,7 @@ class SignalEngine:
             score -= 10
             signals.append({"name": "تحت سحابة إيشيموكو", "type": "SELL", "score": -10})
         
-        # ------------------------------------------------------------
-        # استراتيجية 11: CCI (مؤشر قناة السلع)
-        # ------------------------------------------------------------
+        # استراتيجية 11: CCI
         if cci < -100:
             score += 10
             signals.append({"name": "CCI تشبع شرائي", "type": "BUY", "score": 10})
@@ -204,13 +181,10 @@ class SignalEngine:
             score -= 10
             signals.append({"name": "CCI تشبع بيعي", "type": "SELL", "score": -10})
         
-        # ------------------------------------------------------------
-        # استراتيجية 12: التقلب (ATR)
-        # ------------------------------------------------------------
+        # استراتيجية 12: التقلب
         volatility = "LOW"
         if atr > 0.003:
             volatility = "HIGH"
-            # إضافة نقاط إضافية حسب اتجاه السعر
             if closes[-1] > closes[-5]:
                 score += 5
             else:

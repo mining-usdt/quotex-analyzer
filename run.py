@@ -1,6 +1,5 @@
 """
-نقطة دخول التطبيق
-تشغيل سيرفر FastAPI مع جميع الإعدادات
+نقطة دخول التطبيق - تشغيل سيرفر FastAPI مع جميع الإعدادات
 """
 
 import os
@@ -9,7 +8,6 @@ import asyncio
 import uvicorn
 from dotenv import load_dotenv
 
-# تحميل المتغيرات البيئية
 load_dotenv()
 
 def main():
@@ -18,7 +16,7 @@ def main():
     host = os.getenv("API_HOST", "0.0.0.0")
     
     print("=" * 60)
-    print("🔥 Quotex Ultimate Bot v8.0")
+    print("🔥 Quotex Ultimate Bot v10.0")
     print("=" * 60)
     print(f"🌐 السيرفر يعمل على: http://{host}:{port}")
     print(f"📊 وحدة التحليل: http://{host}:{port}/")

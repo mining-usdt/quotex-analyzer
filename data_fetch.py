@@ -1,189 +1,200 @@
 """
-جلب البيانات الحقيقية من Twelve Data API
-مع بيانات احتياطية ذكية في حال فشل API
+إدارة المخاطر الصارمة لنظام التداول الآلي
 """
 
+import json
 import os
-import time
-import requests
-import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any
-from dotenv import load_dotenv
+from datetime import datetime, date
+from typing import Dict, Optional, Any
 
-load_dotenv()
-
-# ===== مفتاح API =====
-TWELVE_DATA_API_KEY = os.getenv("TWELVE_DATA_API_KEY", "")
-
-# ===== الأسعار الأساسية (احتياطية) =====
-BASE_PRICES = {
-    "EURUSD": 1.0900,
-    "GBPUSD": 1.2600,
-    "USDJPY": 150.00,
-    "CHFJPY": 165.00,
-    "AUDUSD": 0.6500,
-    "USDCAD": 1.3500,
-    "BTCUSD": 65000,
-    "ETHUSD": 3500,
-    "USDTRY": 34.50,
-    "EURTRY": 38.00,
-    "GBPTRY": 44.00,
-    "USDBDT": 120.00,
-    "EURBDT": 130.00,
-    "USDINR": 83.50,
-    "EURINR": 90.00,
-    "GBPINR": 105.00,
-    "XAUUSD": 2400.00,
-    "XAGUSD": 28.50,
-}
-
-# ===== ذاكرة مؤقتة للبيانات =====
-_cache = {}
-_cache_time = {}
-
-def _is_cache_valid(key: str, max_age: int = 30) -> bool:
-    """التحقق من صلاحية الذاكرة المؤقتة"""
-    if key not in _cache_time:
-        return False
-    return (time.time() - _cache_time[key]) < max_age
-
-def get_live_price(symbol: str) -> float:
-    """جلب السعر الحي من Twelve Data"""
-    cache_key = f"price_{symbol}"
+class RiskManager:
+    """
+    إدارة المخاطر مع حد خسارة يومي ونسبة مخاطرة ثابتة
+    """
     
-    # استخدام الذاكرة المؤقتة
-    if _is_cache_valid(cache_key, 5):
-        return _cache[cache_key]
+    def __init__(self, risk_percent: float = 1.0, daily_loss_limit: float = 10.0):
+        self.risk_percent = risk_percent
+        self.daily_loss_limit = daily_loss_limit
+        self.trades_file = "trades_history.json"
+        self.log_file = "trades_log.json"
+        self.daily_loss = 0.0
+        self.today = date.today().isoformat()
+        self.total_trades = 0
+        self.win_count = 0
+        self.loss_count = 0
+        self.total_profit = 0.0
+        self.consecutive_losses = 0
+        self.max_consecutive_losses = 0
+        self.load_daily_stats()
     
-    try:
-        if TWELVE_DATA_API_KEY:
-            url = f"https://api.twelvedata.com/price?symbol={symbol}&apikey={TWELVE_DATA_API_KEY}"
-            resp = requests.get(url, timeout=5)
-            if resp.status_code == 200:
-                data = resp.json()
-                if "price" in data:
-                    price = float(data["price"])
-                    _cache[cache_key] = price
-                    _cache_time[cache_key] = time.time()
-                    return price
-    except Exception as e:
-        print(f"⚠️ فشل جلب السعر الحي لـ {symbol}: {e}")
+    def load_daily_stats(self) -> None:
+        """تحميل إحصائيات اليوم من الملف"""
+        if os.path.exists(self.trades_file):
+            try:
+                with open(self.trades_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    if data.get('date') == self.today:
+                        self.daily_loss = data.get('daily_loss', 0.0)
+                        self.total_trades = data.get('total_trades', 0)
+                        self.win_count = data.get('win_count', 0)
+                        self.loss_count = data.get('loss_count', 0)
+                        self.total_profit = data.get('total_profit', 0.0)
+                        self.consecutive_losses = data.get('consecutive_losses', 0)
+                        self.max_consecutive_losses = data.get('max_consecutive_losses', 0)
+                    else:
+                        self.daily_loss = 0.0
+                        self.total_trades = 0
+                        self.win_count = 0
+                        self.loss_count = 0
+                        self.total_profit = 0.0
+                        self.consecutive_losses = 0
+                        self.max_consecutive_losses = 0
+            except:
+                self.daily_loss = 0.0
+        else:
+            self.daily_loss = 0.0
     
-    # الرجوع إلى السعر المخزن
-    return BASE_PRICES.get(symbol, 1.0)
-
-def get_ohlc_data(symbol: str, interval: str = "1min", outputsize: int = 200) -> Optional[pd.DataFrame]:
-    """جلب شموع حقيقية من Twelve Data"""
-    cache_key = f"ohlc_{symbol}_{interval}_{outputsize}"
+    def save_daily_stats(self) -> None:
+        """حفظ إحصائيات اليوم إلى الملف"""
+        try:
+            with open(self.trades_file, 'w', encoding='utf-8') as f:
+                json.dump({
+                    'date': self.today,
+                    'daily_loss': self.daily_loss,
+                    'total_trades': self.total_trades,
+                    'win_count': self.win_count,
+                    'loss_count': self.loss_count,
+                    'total_profit': self.total_profit,
+                    'consecutive_losses': self.consecutive_losses,
+                    'max_consecutive_losses': self.max_consecutive_losses
+                }, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"⚠️ فشل حفظ الإحصائيات: {e}")
     
-    # استخدام الذاكرة المؤقتة (30 ثانية)
-    if _is_cache_valid(cache_key, 30):
-        return _cache[cache_key].copy()
+    def calculate_position_size(self, balance: float) -> float:
+        """حساب حجم الصفقة بناءً على الرصيد ونسبة المخاطرة"""
+        position_size = balance * (self.risk_percent / 100)
+        return round(position_size, 2)
     
-    try:
-        if TWELVE_DATA_API_KEY:
-            url = f"https://api.twelvedata.com/time_series?symbol={symbol}&interval={interval}&outputsize={outputsize}&apikey={TWELVE_DATA_API_KEY}"
-            resp = requests.get(url, timeout=10)
+    def can_trade(self, balance: float, confidence: int, min_confidence: int = 85) -> Dict:
+        """التحقق من إمكانية التداول بناءً على عدة شروط"""
+        if confidence < min_confidence:
+            return {
+                "allowed": False,
+                "reason": f"الثقة منخفضة ({confidence}% < {min_confidence}%)",
+                "position_size": 0.0
+            }
+        
+        if self.daily_loss >= self.daily_loss_limit:
+            return {
+                "allowed": False,
+                "reason": f"تم تجاوز حد الخسارة اليومي (${self.daily_loss_limit})",
+                "position_size": 0.0
+            }
+        
+        if balance < 5.0:
+            return {
+                "allowed": False,
+                "reason": f"الرصيد منخفض جداً (${balance}) - الحد الأدنى 5$",
+                "position_size": 0.0
+            }
+        
+        if self.consecutive_losses >= 3:
+            return {
+                "allowed": False,
+                "reason": f"خسائر متتالية ({self.consecutive_losses}) - توقف مؤقت",
+                "position_size": 0.0
+            }
+        
+        position_size = self.calculate_position_size(balance)
+        if position_size < 0.5:
+            return {
+                "allowed": False,
+                "reason": f"حجم الصفقة صغير جداً (${position_size}) - الحد الأدنى 0.5$",
+                "position_size": 0.0
+            }
+        
+        return {
+            "allowed": True,
+            "reason": "✅ جميع الشروط مستوفاة",
+            "position_size": position_size
+        }
+    
+    def record_trade(self, profit: float, trade_data: Optional[Dict] = None) -> None:
+        """تسجيل نتيجة الصفقة"""
+        self.total_trades += 1
+        
+        if profit > 0:
+            self.win_count += 1
+            self.consecutive_losses = 0
+        else:
+            self.loss_count += 1
+            self.consecutive_losses += 1
+            if self.consecutive_losses > self.max_consecutive_losses:
+                self.max_consecutive_losses = self.consecutive_losses
+        
+        self.total_profit += profit
+        
+        if profit < 0:
+            self.daily_loss += abs(profit)
+        
+        self.save_daily_stats()
+        self._log_trade(profit, trade_data)
+    
+    def _log_trade(self, profit: float, trade_data: Optional[Dict] = None) -> None:
+        """تسجيل الصفقة في سجل التدقيق"""
+        log_entry = {
+            "timestamp": datetime.now().isoformat(),
+            "profit": profit,
+            "daily_loss": self.daily_loss,
+            "total_profit": self.total_profit,
+            "win_rate": round((self.win_count / self.total_trades * 100) if self.total_trades > 0 else 0, 2),
+            "trade_data": trade_data or {}
+        }
+        
+        try:
+            logs = []
+            if os.path.exists(self.log_file):
+                with open(self.log_file, 'r', encoding='utf-8') as f:
+                    logs = json.load(f)
             
-            if resp.status_code == 200:
-                data = resp.json()
-                if "values" in data and len(data["values"]) > 0:
-                    df = pd.DataFrame(data["values"])
-                    df["datetime"] = pd.to_datetime(df["datetime"])
-                    df = df.rename(columns={
-                        "open": "open",
-                        "high": "high",
-                        "low": "low",
-                        "close": "close"
-                    })
-                    df[["open", "high", "low", "close"]] = df[["open", "high", "low", "close"]].astype(float)
-                    df = df.sort_values("datetime")
-                    
-                    _cache[cache_key] = df.copy()
-                    _cache_time[cache_key] = time.time()
-                    return df
-    except Exception as e:
-        print(f"⚠️ فشل جلب البيانات لـ {symbol}: {e}")
+            logs.append(log_entry)
+            
+            if len(logs) > 1000:
+                logs = logs[-1000:]
+            
+            with open(self.log_file, 'w', encoding='utf-8') as f:
+                json.dump(logs, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"⚠️ فشل تسجيل الصفقة: {e}")
     
-    # بيانات احتياطية ذكية
-    df = _generate_fallback_data(symbol, outputsize)
-    _cache[cache_key] = df.copy()
-    _cache_time[cache_key] = time.time()
-    return df
-
-def _generate_fallback_data(symbol: str, outputsize: int) -> pd.DataFrame:
-    """توليد بيانات احتياطية تشبه السوق الحقيقي (ذكية)"""
-    base = BASE_PRICES.get(symbol, 1.0)
-    seed = int(time.time() * 1000) % 100000 + hash(symbol) % 1000
-    np.random.seed(seed)
+    def reset_daily_stats(self) -> None:
+        """إعادة تعيين الإحصائيات اليومية"""
+        self.daily_loss = 0.0
+        self.total_trades = 0
+        self.win_count = 0
+        self.loss_count = 0
+        self.total_profit = 0.0
+        self.consecutive_losses = 0
+        self.max_consecutive_losses = 0
+        self.today = date.today().isoformat()
+        self.save_daily_stats()
+        print(f"✅ تم إعادة تعيين الإحصائيات اليومية ({self.today})")
     
-    candles = []
-    price = base
-    trend_direction = np.random.choice([-1, 1])
-    trend_strength = np.random.uniform(0.0001, 0.001)
-    volatility = np.random.uniform(0.0003, 0.002)
-    
-    # توليد موجات سعرية
-    for i in range(outputsize):
-        # موجات سعرية طبيعية
-        wave1 = np.sin(i / np.random.uniform(6, 15)) * np.random.uniform(0.001, 0.008)
-        wave2 = np.cos(i / np.random.uniform(10, 25)) * np.random.uniform(0.0005, 0.003)
-        noise = np.random.normal(0, volatility)
-        trend = trend_direction * trend_strength * (i / outputsize)
-        
-        change = wave1 + wave2 + trend + noise
-        
-        open_price = price
-        close_price = open_price + change
-        high_price = max(open_price, close_price) + abs(np.random.normal(0, volatility * 0.6))
-        low_price = min(open_price, close_price) - abs(np.random.normal(0, volatility * 0.6))
-        
-        candles.append({
-            "datetime": (datetime.now() - timedelta(minutes=outputsize - i)).isoformat(),
-            "open": round(open_price, 5),
-            "high": round(high_price, 5),
-            "low": round(low_price, 5),
-            "close": round(close_price, 5)
-        })
-        price = close_price
-    
-    df = pd.DataFrame(candles)
-    df[["open", "high", "low", "close"]] = df[["open", "high", "low", "close"]].astype(float)
-    return df
-
-def get_forex_pairs() -> List[Dict[str, Any]]:
-    """قائمة الأزواج المتاحة للتداول"""
-    return [
-        # العملات الرئيسية
-        {"symbol": "EURUSD", "name": "EUR/USD", "payout": 92},
-        {"symbol": "GBPUSD", "name": "GBP/USD", "payout": 90},
-        {"symbol": "USDJPY", "name": "USD/JPY", "payout": 88},
-        {"symbol": "CHFJPY", "name": "CHF/JPY", "payout": 86},
-        {"symbol": "AUDUSD", "name": "AUD/USD", "payout": 84},
-        {"symbol": "USDCAD", "name": "USD/CAD", "payout": 82},
-        # العملات التركية
-        {"symbol": "USDTRY", "name": "USD/TRY", "payout": 80},
-        {"symbol": "EURTRY", "name": "EUR/TRY", "payout": 78},
-        {"symbol": "GBPTRY", "name": "GBP/TRY", "payout": 76},
-        # العملات الهندية
-        {"symbol": "USDINR", "name": "USD/INR", "payout": 74},
-        {"symbol": "EURINR", "name": "EUR/INR", "payout": 72},
-        {"symbol": "GBPINR", "name": "GBP/INR", "payout": 70},
-        # المعادن الثمينة
-        {"symbol": "XAUUSD", "name": "الذهب XAU/USD", "payout": 68},
-        {"symbol": "XAGUSD", "name": "الفضة XAG/USD", "payout": 66},
-        # العملات المشفرة
-        {"symbol": "BTCUSD", "name": "Bitcoin BTC/USD", "payout": 64},
-        {"symbol": "ETHUSD", "name": "Ethereum ETH/USD", "payout": 62},
-        # العملات البنغلاديشية
-        {"symbol": "USDBDT", "name": "USD/BDT", "payout": 60},
-        {"symbol": "EURBDT", "name": "EUR/BDT", "payout": 58},
-    ]
-
-def clear_cache():
-    """مسح الذاكرة المؤقتة"""
-    global _cache, _cache_time
-    _cache = {}
-    _cache_time = {}
+    def get_status(self) -> Dict:
+        """الحصول على حالة إدارة المخاطر الحالية"""
+        win_rate = round((self.win_count / self.total_trades * 100) if self.total_trades > 0 else 0, 2)
+        return {
+            "daily_loss": self.daily_loss,
+            "daily_limit": self.daily_loss_limit,
+            "remaining": round(self.daily_loss_limit - self.daily_loss, 2),
+            "risk_percent": self.risk_percent,
+            "date": self.today,
+            "total_trades": self.total_trades,
+            "win_count": self.win_count,
+            "loss_count": self.loss_count,
+            "win_rate": win_rate,
+            "total_profit": round(self.total_profit, 2),
+            "consecutive_losses": self.consecutive_losses,
+            "max_consecutive_losses": self.max_consecutive_losses
+        }

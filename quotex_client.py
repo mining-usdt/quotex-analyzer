@@ -1,21 +1,44 @@
 """
-عميل Quotex المتقدم باستخدام PyQuotex
-اتصال حقيقي وتنفيذ صفقات
+عميل Quotex المتقدم - اتصال حقيقي
 """
 
 import os
 import asyncio
 import json
 import time
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 
-from pyquotex.stable_api import Quotex
-from pyquotex.utils.account_type import AccountType
+try:
+    from pyquotex.stable_api import Quotex
+    from pyquotex.utils.account_type import AccountType
+except ImportError:
+    print("⚠️ pyquotex غير مثبت، جاري استخدام وضع المحاكاة...")
+    # وضع المحاكاة الاحتياطي
+    class Quotex:
+        def __init__(self, email, password, lang="en"):
+            self.email = email
+            self.password = password
+            self.lang = lang
+        
+        def set_account_mode(self, mode):
+            self.mode = mode
+        
+        async def connect(self):
+            return False, "pyquotex غير مثبت"
+        
+        async def close(self):
+            pass
+        
+        async def get_balance(self):
+            return 0.0
+        
+        async def buy(self, amount, asset, direction, duration):
+            return False, {"error": "غير مدعوم"}
 
 class QuotexClient:
     """
-    عميل Quotex للاتصال والتداول
+    عميل Quotex للاتصال والتداول الحقيقي
     """
     
     def __init__(self, email: str, password: str, is_demo: bool = True):
@@ -37,6 +60,8 @@ class QuotexClient:
         self.account_type = "demo" if is_demo else "real"
         self.last_error = ""
         self._callbacks = []
+        self._reconnect_attempts = 0
+        self._max_reconnect_attempts = 3
         
     async def connect(self) -> bool:
         """
@@ -52,26 +77,36 @@ class QuotexClient:
             self.client = Quotex(
                 email=self.email,
                 password=self.password,
-                lang="ar"
+                lang="en"
             )
             
             # تعيين نوع الحساب
             mode = "PRACTICE" if self.is_demo else "REAL"
             self.client.set_account_mode(mode)
             
-            # الاتصال
-            connected, reason = await self.client.connect()
+            # الاتصال مع إعادة المحاولة
+            for attempt in range(self._max_reconnect_attempts):
+                try:
+                    connected, reason = await self.client.connect()
+                    
+                    if connected:
+                        self.is_connected = True
+                        self._reconnect_attempts = 0
+                        await self._update_balance()
+                        print(f"✅ تم الاتصال بـ Quotex (حساب: {mode})")
+                        print(f"💰 الرصيد: ${self.balance:.2f}")
+                        return True
+                    else:
+                        print(f"⚠️ محاولة {attempt + 1}: {reason}")
+                        self.last_error = reason
+                        await asyncio.sleep(2)
+                except Exception as e:
+                    print(f"⚠️ محاولة {attempt + 1}: {e}")
+                    self.last_error = str(e)
+                    await asyncio.sleep(2)
             
-            if connected:
-                self.is_connected = True
-                await self._update_balance()
-                print(f"✅ تم الاتصال بـ Quotex (حساب: {mode})")
-                print(f"💰 الرصيد: ${self.balance:.2f}")
-                return True
-            else:
-                self.last_error = reason
-                print(f"❌ فشل الاتصال: {reason}")
-                return False
+            print("❌ فشل الاتصال بعد عدة محاولات")
+            return False
                 
         except Exception as e:
             self.last_error = str(e)
@@ -151,9 +186,13 @@ class QuotexClient:
             dir_key = dir_map.get(direction.upper(), "call")
             
             # التأكد من أن الزوج مفتوح
-            asset_name, asset_data = await self.client.get_available_asset(symbol, force_open=True)
-            if not asset_data or not asset_data[2]:
-                return {"success": False, "error": f"الزوج {symbol} مغلق"}
+            try:
+                asset_name, asset_data = await self.client.get_available_asset(symbol, force_open=True)
+                if not asset_data or not asset_data[2]:
+                    return {"success": False, "error": f"الزوج {symbol} مغلق"}
+            except:
+                # إذا فشل التحقق، نحاول التنفيذ مباشرة
+                pass
             
             # تنفيذ الصفقة
             status, result = await self.client.buy(
@@ -216,7 +255,6 @@ class QuotexClient:
             return []
         
         try:
-            # استخدام get_history للحصول على الصفقات
             history = await self.client.get_history()
             return history if history else []
         except Exception as e:
