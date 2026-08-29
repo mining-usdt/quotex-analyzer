@@ -1,5 +1,6 @@
 class UltimateAnalyzer {
     constructor() {
+        // ⚠️ هذا هو الرابط الصحيح للسيرفر على Render
         this.apiBase = 'https://quotex-analyzer-1.onrender.com';
         this.continuousMode = false;
         this.continuousInterval = null;
@@ -78,12 +79,9 @@ class UltimateAnalyzer {
             }
             const data = await response.json();
             
-            if (data.signals && data.signals.length > 0) {
-                // عرض أقوى إشارة
-                this.displayResult(data.signals[0]);
-                
-                // عرض جميع الإشارات القوية
-                this.showStrongSignals(data.signals);
+            if (data.signal) {
+                this.displayResult(data.signal);
+                this.showStrongSignals([data.signal]);
             } else {
                 this.showError('❌ لا توجد إشارات قوية حالياً. حاول مرة أخرى لاحقاً.');
             }
@@ -108,10 +106,7 @@ class UltimateAnalyzer {
         document.getElementById('stopBtn').style.display = 'inline-flex';
         document.getElementById('analyzeBtn').disabled = true;
         
-        // تحليل فوري
         this.analyzeOnce();
-        
-        // كل 10 ثوانٍ
         this.continuousInterval = setInterval(() => {
             this.analyzeOnce();
         }, 10000);
@@ -139,7 +134,6 @@ class UltimateAnalyzer {
         const action = data.action || 'NEUTRAL';
         const confidence = data.confidence || 0;
         const isStrong = action.startsWith('STRONG_');
-        const displayAction = isStrong ? action.replace('STRONG_', '') : action;
         
         let actionText = '⚪ محايد';
         let actionClass = 'NEUTRAL';
@@ -151,125 +145,14 @@ class UltimateAnalyzer {
             actionClass = isStrong ? 'STRONG_SELL' : 'SELL';
         }
         
-        // بناء التوصية
-        let suggestionHTML = '';
-        if (data.suggestion) {
-            const sug = data.suggestion;
-            suggestionHTML = `
-                <div style="margin:15px 0;padding:15px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);">
-                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;">
-                        <div>
-                            <div style="font-size:11px;color:#666;">الاتجاه</div>
-                            <div style="font-weight:700;font-size:16px;color:${sug.direction.includes('شراء') ? '#00ff88' : sug.direction.includes('بيع') ? '#ff4444' : '#888'}">
-                                ${sug.direction}
-                            </div>
-                        </div>
-                        <div>
-                            <div style="font-size:11px;color:#666;">نقطة الدخول</div>
-                            <div style="font-weight:700;">${sug.entry || '--'}</div>
-                        </div>
-                        <div>
-                            <div style="font-size:11px;color:#666;">جني الربح (TP)</div>
-                            <div style="font-weight:700;color:#00ff88;">${sug.take_profit || '--'}</div>
-                        </div>
-                        <div>
-                            <div style="font-size:11px;color:#666;">وقف الخسارة (SL)</div>
-                            <div style="font-weight:700;color:#ff4444;">${sug.stop_loss || '--'}</div>
-                        </div>
-                        <div>
-                            <div style="font-size:11px;color:#666;">نسبة المخاطرة/المكافأة</div>
-                            <div style="font-weight:700;color:#ffbb00;">${sug.risk_reward || 0}</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // بناء المؤشرات
-        let indicatorsHTML = '';
-        if (data.rsi !== undefined) {
-            indicatorsHTML = `
-                <div class="indicators-grid">
-                    <div class="indicator-card">
-                        <div class="name">RSI</div>
-                        <div class="value">${data.rsi.toFixed(2)}</div>
-                        <span class="signal-tag ${data.rsi < 30 ? 'buy-tag' : data.rsi > 70 ? 'sell-tag' : 'neutral-tag'}">
-                            ${data.rsi < 30 ? 'تشبع شرائي' : data.rsi > 70 ? 'تشبع بيعي' : 'محايد'}
-                        </span>
-                    </div>
-                    <div class="indicator-card">
-                        <div class="name">MACD</div>
-                        <div class="value">${data.macd?.histogram?.toFixed(4) || '--'}</div>
-                        <span class="signal-tag ${data.macd?.histogram > 0 ? 'buy-tag' : 'sell-tag'}">
-                            ${data.macd?.histogram > 0 ? 'صاعد' : 'هابط'}
-                        </span>
-                    </div>
-                    <div class="indicator-card">
-                        <div class="name">Stochastic</div>
-                        <div class="value" style="font-size:14px;">K: ${data.stochastic?.k?.toFixed(2) || '--'}</div>
-                        <div class="value" style="font-size:14px;">D: ${data.stochastic?.d?.toFixed(2) || '--'}</div>
-                    </div>
-                    <div class="indicator-card">
-                        <div class="name">الدعم / المقاومة</div>
-                        <div class="value" style="font-size:14px;">دعم: ${data.support_resistance?.support?.toFixed(5) || '--'}</div>
-                        <div class="value" style="font-size:14px;">مقاومة: ${data.support_resistance?.resistance?.toFixed(5) || '--'}</div>
-                    </div>
-                    <div class="indicator-card">
-                        <div class="name">ATR (التقلب)</div>
-                        <div class="value">${data.atr?.toFixed(5) || '--'}</div>
-                    </div>
-                    <div class="indicator-card">
-                        <div class="name">الوقت المتبقي</div>
-                        <div class="value" style="font-size:18px;">${data.time_remaining_minutes?.toFixed(2) || '--'} دقيقة</div>
-                    </div>
-                </div>
-            `;
-        }
-        
         // بناء الإشارات المكونة
         let signalsList = '';
         if (data.signals && data.signals.length > 0) {
             signalsList = data.signals.map(s => 
-                `<span class="signal-tag ${s.type === 'BUY' ? 'buy-tag' : s.type === 'SELL' ? 'sell-tag' : 'neutral-tag'}">
-                    ${s.name} (${s.score > 0 ? '+' : ''}${s.score})
+                `<span class="signal-tag ${s.signal === 'BUY' || s.signal === 'STRONG_BUY' ? 'buy-tag' : s.signal === 'SELL' || s.signal === 'STRONG_SELL' ? 'sell-tag' : 'neutral-tag'}">
+                    ${s.name}: ${s.signal} (${s.score > 0 ? '+' : ''}${s.score})
                 </span>`
             ).join(' ');
-        }
-        
-        // الأنماط
-        let patternHTML = '';
-        if (data.pattern && data.pattern.name !== 'NONE') {
-            patternHTML = `
-                <div style="margin-top:10px;padding:10px 15px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);">
-                    <span style="color:#888;">🔍 النمط المكتشف:</span>
-                    <span style="font-weight:700;color:#ffbb00;">${data.pattern.name}</span>
-                    <span style="color:#666;font-size:13px;">(القوة: ${data.pattern.score}%)</span>
-                </div>
-            `;
-        }
-        
-        // الاختراق
-        let breakoutHTML = '';
-        if (data.breakout && data.breakout.name !== 'NONE') {
-            breakoutHTML = `
-                <div style="margin-top:10px;padding:10px 15px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);">
-                    <span style="color:#888;">🚀 الاختراق:</span>
-                    <span style="font-weight:700;color:#00d4ff;">${data.breakout.name}</span>
-                    <span style="color:#666;font-size:13px;">(القوة: ${data.breakout.score}%)</span>
-                </div>
-            `;
-        }
-        
-        // الارتداد
-        let bounceHTML = '';
-        if (data.bounce && data.bounce.name !== 'NONE') {
-            bounceHTML = `
-                <div style="margin-top:10px;padding:10px 15px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);">
-                    <span style="color:#888;">📌 الارتداد:</span>
-                    <span style="font-weight:700;color:#7b2ffc;">${data.bounce.name}</span>
-                    <span style="color:#666;font-size:13px;">(القوة: ${data.bounce.score}%)</span>
-                </div>
-            `;
         }
         
         container.innerHTML = `
@@ -314,15 +197,54 @@ class UltimateAnalyzer {
                     </div>
                 </div>
                 
-                ${suggestionHTML}
-                
                 ${signalsList ? `<div style="margin:10px 0;display:flex;flex-wrap:wrap;gap:5px;">${signalsList}</div>` : ''}
                 
-                ${indicatorsHTML}
-                
-                ${patternHTML}
-                ${breakoutHTML}
-                ${bounceHTML}
+                <div class="indicators-grid">
+                    <div class="indicator-card">
+                        <div class="name">RSI</div>
+                        <div class="value">${data.rsi?.toFixed(2) || '--'}</div>
+                        <span class="signal-tag ${data.rsi < 30 ? 'buy-tag' : data.rsi > 70 ? 'sell-tag' : 'neutral-tag'}">
+                            ${data.rsi < 30 ? 'تشبع شرائي' : data.rsi > 70 ? 'تشبع بيعي' : 'محايد'}
+                        </span>
+                    </div>
+                    <div class="indicator-card">
+                        <div class="name">MACD</div>
+                        <div class="value">${data.macd?.histogram?.toFixed(4) || '--'}</div>
+                        <span class="signal-tag ${data.macd?.histogram > 0 ? 'buy-tag' : 'sell-tag'}">
+                            ${data.macd?.histogram > 0 ? 'صاعد' : 'هابط'}
+                        </span>
+                    </div>
+                    <div class="indicator-card">
+                        <div class="name">Bollinger</div>
+                        <div class="value" style="font-size:14px;">U: ${data.bollinger?.upper?.toFixed(5) || '--'}</div>
+                        <div class="value" style="font-size:14px;">L: ${data.bollinger?.lower?.toFixed(5) || '--'}</div>
+                    </div>
+                    <div class="indicator-card">
+                        <div class="name">Stochastic</div>
+                        <div class="value" style="font-size:14px;">K: ${data.stochastic?.k?.toFixed(2) || '--'}</div>
+                        <div class="value" style="font-size:14px;">D: ${data.stochastic?.d?.toFixed(2) || '--'}</div>
+                    </div>
+                    <div class="indicator-card">
+                        <div class="name">الدعم / المقاومة</div>
+                        <div class="value" style="font-size:14px;">دعم: ${data.support_resistance?.support?.toFixed(5) || '--'}</div>
+                        <div class="value" style="font-size:14px;">مقاومة: ${data.support_resistance?.resistance?.toFixed(5) || '--'}</div>
+                    </div>
+                    <div class="indicator-card">
+                        <div class="name">ATR (التقلب)</div>
+                        <div class="value">${data.atr?.toFixed(5) || '--'}</div>
+                    </div>
+                    <div class="indicator-card">
+                        <div class="name">الاتجاه (EMA)</div>
+                        <div class="value" style="font-size:14px;">9: ${data.ema9?.toFixed(5) || '--'}</div>
+                        <div class="value" style="font-size:14px;">21: ${data.ema21?.toFixed(5) || '--'}</div>
+                    </div>
+                    <div class="indicator-card">
+                        <div class="name">التقلب</div>
+                        <div class="value" style="font-size:16px;color:${data.volatility === 'HIGH' ? '#ff4444' : data.volatility === 'MEDIUM' ? '#ffbb00' : '#00ff88'}">
+                            ${data.volatility || '--'}
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
     }
@@ -348,11 +270,6 @@ class UltimateAnalyzer {
                     <div style="font-size:12px;color:#666;">
                         الوقت المتبقي: ${data.time_remaining_minutes?.toFixed(2) || '--'} دقيقة
                     </div>
-                    ${data.suggestion ? `
-                        <div style="font-size:12px;color:#aaa;margin-top:3px;">
-                            TP: ${data.suggestion.take_profit || '--'} | SL: ${data.suggestion.stop_loss || '--'}
-                        </div>
-                    ` : ''}
                 </div>
             `;
         }).join('');
@@ -383,7 +300,6 @@ class UltimateAnalyzer {
     }
 }
 
-// تشغيل التطبيق
 document.addEventListener('DOMContentLoaded', () => {
     const app = new UltimateAnalyzer();
 });
