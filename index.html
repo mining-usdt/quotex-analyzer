@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔥 Quotex OTC Analyzer ULTIMATE</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard">
+        <header class="glass-header ultimate">
+            <div class="logo-container">
+                <h1><i class="fas fa-fire"></i> Quotex OTC Analyzer <span class="badge-ultimate">ULTIMATE</span></h1>
+                <div class="system-status">
+                    <span class="live-badge"><i class="fas fa-circle"></i> LIVE</span>
+                    <span id="systemTime" class="system-time"></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- لوحة التحكم -->
+        <div class="control-panel glass">
+            <div class="control-row">
+                <div class="control-group">
+                    <label for="symbolSelect"><i class="fas fa-chart-simple"></i> اختر الزوج:</label>
+                    <select id="symbolSelect" class="symbol-select">
+                        <option value="">جاري التحميل...</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="limitSelect"><i class="fas fa-clock"></i> عدد الشموع:</label>
+                    <select id="limitSelect" class="limit-select">
+                        <option value="50">50</option>
+                        <option value="100" selected>100</option>
+                        <option value="200">200</option>
+                        <option value="500">500</option>
+                    </select>
+                </div>
+                <button id="analyzeBtn" class="analyze-btn">
+                    <i class="fas fa-rocket"></i> تحليل الآن
+                </button>
+                <button id="continuousBtn" class="continuous-btn">
+                    <i class="fas fa-infinity"></i> تحليل مستمر
+                </button>
+                <button id="stopBtn" class="stop-btn" style="display:none;">
+                    <i class="fas fa-stop"></i> إيقاف
+                </button>
+                <button id="strongSignalBtn" class="strong-btn">
+                    <i class="fas fa-bolt"></i> بحث عن إشارة قوية
+                </button>
+            </div>
+        </div>
+
+        <!-- نتيجة التحليل -->
+        <div id="resultContainer" class="result-container glass">
+            <div class="result-placeholder">
+                <i class="fas fa-chart-line" style="font-size:48px;color:#333;"></i>
+                <p>اختر زوجاً واضغط "تحليل" لبدء التحليل الخارق</p>
+                <p style="font-size:13px;color:#444;margin-top:5px;">أو اضغط "بحث عن إشارة قوية" للعثور على أفضل فرصة</p>
+            </div>
+        </div>
+
+        <!-- الإشارات القوية -->
+        <div class="signals-panel glass" id="signalsPanel" style="display:none;">
+            <h2><i class="fas fa-bolt"></i> الإشارات القوية المكتشفة</h2>
+            <div id="strongSignalsContainer"></div>
+        </div>
+
+        <footer class="glass-footer">
+            <p>⚠️ التداول يحمل مخاطر عالية. استخدم دائماً حساباً تجريبياً أولاً.</p>
+            <p>🛠️ المحلل الخارق v5.0 | <i class="fas fa-skull"></i> TΔWØRM-V99 🜁</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
