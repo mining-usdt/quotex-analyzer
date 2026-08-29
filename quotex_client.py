@@ -1,5 +1,5 @@
 """
-عميل Quotex المتقدم - اتصال حقيقي
+عميل Quotex مع دعم الـ Proxy
 """
 
 import os
@@ -11,190 +11,92 @@ from datetime import datetime
 
 try:
     from pyquotex.stable_api import Quotex
-    from pyquotex.utils.account_type import AccountType
 except ImportError:
-    print("⚠️ pyquotex غير مثبت، جاري استخدام وضع المحاكاة...")
-    # وضع المحاكاة الاحتياطي
-    class Quotex:
-        def __init__(self, email, password, lang="en"):
-            self.email = email
-            self.password = password
-            self.lang = lang
-        
-        def set_account_mode(self, mode):
-            self.mode = mode
-        
-        async def connect(self):
-            return False, "pyquotex غير مثبت"
-        
-        async def close(self):
-            pass
-        
-        async def get_balance(self):
-            return 0.0
-        
-        async def buy(self, amount, asset, direction, duration):
-            return False, {"error": "غير مدعوم"}
+    print("⚠️ pyquotex غير مثبت")
+    # استخدم وضع المحاكاة كبديل
+    from quotex_sim import QuotexClient as SimClient
+    Quotex = None
 
 class QuotexClient:
-    """
-    عميل Quotex للاتصال والتداول الحقيقي
-    """
-    
     def __init__(self, email: str, password: str, is_demo: bool = True):
-        """
-        تهيئة عميل Quotex
-        
-        Args:
-            email: البريد الإلكتروني
-            password: كلمة المرور
-            is_demo: True للحساب التجريبي، False للحقيقي
-        """
         self.email = email
         self.password = password
         self.is_demo = is_demo
-        self.client: Optional[Quotex] = None
+        self.client = None
         self.is_connected = False
         self.balance = 0.0
-        self.balances = {"demo": 0.0, "real": 0.0}
-        self.account_type = "demo" if is_demo else "real"
         self.last_error = ""
-        self._callbacks = []
-        self._reconnect_attempts = 0
-        self._max_reconnect_attempts = 3
+        self._use_sim = Quotex is None
         
     async def connect(self) -> bool:
-        """
-        الاتصال بـ Quotex عبر WebSocket
+        if self._use_sim:
+            # استخدام المحاكاة
+            self.client = SimClient(self.email, self.password, self.is_demo)
+            return await self.client.connect()
         
-        Returns:
-            bool: True إذا تم الاتصال بنجاح
-        """
         try:
-            print(f"🔌 جاري الاتصال بـ Quotex... (حساب: {self.account_type})")
+            print(f"🔌 جاري الاتصال بـ Quotex... (حساب: {'تجريبي' if self.is_demo else 'حقيقي'})")
             
-            # إنشاء عميل Quotex
             self.client = Quotex(
                 email=self.email,
                 password=self.password,
                 lang="en"
             )
             
-            # تعيين نوع الحساب
             mode = "PRACTICE" if self.is_demo else "REAL"
             self.client.set_account_mode(mode)
             
-            # الاتصال مع إعادة المحاولة
-            for attempt in range(self._max_reconnect_attempts):
-                try:
-                    connected, reason = await self.client.connect()
-                    
-                    if connected:
-                        self.is_connected = True
-                        self._reconnect_attempts = 0
-                        await self._update_balance()
-                        print(f"✅ تم الاتصال بـ Quotex (حساب: {mode})")
-                        print(f"💰 الرصيد: ${self.balance:.2f}")
-                        return True
-                    else:
-                        print(f"⚠️ محاولة {attempt + 1}: {reason}")
-                        self.last_error = reason
-                        await asyncio.sleep(2)
-                except Exception as e:
-                    print(f"⚠️ محاولة {attempt + 1}: {e}")
-                    self.last_error = str(e)
-                    await asyncio.sleep(2)
+            # محاولة الاتصال مع بروكسي
+            connected, reason = await self.client.connect()
             
-            print("❌ فشل الاتصال بعد عدة محاولات")
-            return False
+            if connected:
+                self.is_connected = True
+                await self._update_balance()
+                print(f"✅ تم الاتصال بـ Quotex (حساب: {mode})")
+                print(f"💰 الرصيد: ${self.balance:.2f}")
+                return True
+            else:
+                self.last_error = reason
+                print(f"⚠️ فشل الاتصال: {reason}")
+                return False
                 
         except Exception as e:
             self.last_error = str(e)
             print(f"❌ خطأ في الاتصال: {e}")
             return False
     
-    async def disconnect(self) -> None:
-        """قطع الاتصال بـ Quotex"""
+    async def _update_balance(self):
+        if self.client and self.is_connected:
+            try:
+                self.balance = await self.client.get_balance()
+            except:
+                pass
+    
+    async def disconnect(self):
         if self.client:
             try:
                 await self.client.close()
             except:
                 pass
         self.is_connected = False
-        print("🔌 تم قطع الاتصال")
-    
-    async def _update_balance(self) -> None:
-        """تحديث الرصيد"""
-        if self.client and self.is_connected:
-            try:
-                balance = await self.client.get_balance()
-                self.balance = balance if balance else 0.0
-            except Exception as e:
-                print(f"⚠️ فشل تحديث الرصيد: {e}")
     
     async def get_balance(self) -> float:
-        """الحصول على الرصيد الحالي"""
-        if not self.is_connected:
-            return 0.0
+        if self._use_sim:
+            return await self.client.get_balance()
         await self._update_balance()
         return self.balance
     
-    async def switch_account(self, is_demo: bool) -> bool:
-        """
-        التبديل بين الحساب التجريبي والحقيقي
-        
-        Args:
-            is_demo: True للحساب التجريبي، False للحقيقي
-            
-        Returns:
-            bool: True إذا تم التبديل بنجاح
-        """
-        if not self.client or not self.is_connected:
-            return False
-        
-        try:
-            mode = "PRACTICE" if is_demo else "REAL"
-            await self.client.change_account(mode)
-            self.is_demo = is_demo
-            self.account_type = "demo" if is_demo else "real"
-            await self._update_balance()
-            print(f"✅ تم التبديل إلى حساب {self.account_type}")
-            return True
-        except Exception as e:
-            print(f"❌ فشل التبديل: {e}")
-            return False
-    
     async def execute_trade(self, symbol: str, direction: str, amount: float, expiry: int = 60) -> Dict[str, Any]:
-        """
-        تنفيذ صفقة على Quotex
+        if self._use_sim:
+            return await self.client.execute_trade(symbol, direction, amount, expiry)
         
-        Args:
-            symbol: رمز الزوج
-            direction: الاتجاه (CALL أو PUT)
-            amount: المبلغ
-            expiry: المدة بالثواني
-            
-        Returns:
-            Dict: نتيجة الصفقة
-        """
         if not self.client or not self.is_connected:
-            return {"success": False, "error": "غير متصل بـ Quotex"}
+            return {"success": False, "error": "غير متصل"}
         
         try:
-            # تحويل الاتجاه إلى صيغة PyQuotex
             dir_map = {"CALL": "call", "PUT": "put"}
             dir_key = dir_map.get(direction.upper(), "call")
             
-            # التأكد من أن الزوج مفتوح
-            try:
-                asset_name, asset_data = await self.client.get_available_asset(symbol, force_open=True)
-                if not asset_data or not asset_data[2]:
-                    return {"success": False, "error": f"الزوج {symbol} مغلق"}
-            except:
-                # إذا فشل التحقق، نحاول التنفيذ مباشرة
-                pass
-            
-            # تنفيذ الصفقة
             status, result = await self.client.buy(
                 amount=amount,
                 asset=symbol,
@@ -211,7 +113,6 @@ class QuotexClient:
                     "direction": direction,
                     "amount": amount,
                     "expiry": expiry,
-                    "open_price": result.get("openPrice"),
                     "timestamp": datetime.now().isoformat()
                 }
             else:
@@ -221,25 +122,15 @@ class QuotexClient:
             return {"success": False, "error": str(e)}
     
     async def get_trade_result(self, trade_id: str, timeout: int = 60) -> Dict[str, Any]:
-        """
-        انتظار نتيجة الصفقة
+        if self._use_sim:
+            return await self.client.get_trade_result(trade_id, timeout)
         
-        Args:
-            trade_id: معرف الصفقة
-            timeout: مدة الانتظار بالثواني
-            
-        Returns:
-            Dict: نتيجة الصفقة
-        """
         if not self.client or not self.is_connected:
-            return {"success": False, "error": "غير متصل بـ Quotex"}
+            return {"success": False, "error": "غير متصل"}
         
         try:
-            # انتظار النتيجة
             win, profit = await self.client.check_win(trade_id, timeout=timeout)
-            
             await self._update_balance()
-            
             return {
                 "success": True,
                 "trade_id": trade_id,
@@ -249,37 +140,23 @@ class QuotexClient:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    async def get_open_trades(self) -> List[Dict]:
-        """الحصول على الصفقات المفتوحة"""
-        if not self.client or not self.is_connected:
-            return []
-        
-        try:
-            history = await self.client.get_history()
-            return history if history else []
-        except Exception as e:
-            print(f"⚠️ فشل جلب الصفقات المفتوحة: {e}")
-            return []
-    
     async def get_history(self, limit: int = 50) -> List[Dict]:
-        """الحصول على سجل الصفقات"""
+        if self._use_sim:
+            return await self.client.get_history(limit)
+        
         if not self.client or not self.is_connected:
             return []
         
         try:
             history = await self.client.get_history()
-            if history and len(history) > limit:
-                return history[:limit]
-            return history if history else []
-        except Exception as e:
-            print(f"⚠️ فشل جلب السجل: {e}")
+            return history[:limit] if history else []
+        except:
             return []
     
     def get_status(self) -> Dict:
-        """الحصول على حالة العميل"""
         return {
             "connected": self.is_connected,
-            "account_type": self.account_type,
+            "account_type": "demo" if self.is_demo else "real",
             "balance": self.balance,
             "last_error": self.last_error
         }
