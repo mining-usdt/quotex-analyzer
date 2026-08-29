@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+import os
 from datetime import datetime
 import pandas as pd
 import numpy as np
@@ -16,37 +18,55 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-async def root():
-    return {
-        "message": "🚀 Quotex Ultimate Analyzer PRO",
-        "status": "online",
-        "version": "5.0",
-        "timestamp": datetime.now().isoformat()
-    }
+# ===== خدمة الملفات الثابتة =====
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_index():
+    """تقديم الصفحة الرئيسية"""
+    try:
+        with open("index.html", "r", encoding="utf-8") as f:
+            html_content = f.read()
+        return HTMLResponse(content=html_content)
+    except FileNotFoundError:
+        return {"error": "index.html not found"}
+
+@app.get("/style.css", response_class=FileResponse)
+async def serve_css():
+    """تقديم ملف CSS"""
+    try:
+        return FileResponse("style.css")
+    except FileNotFoundError:
+        return {"error": "style.css not found"}
+
+@app.get("/script.js", response_class=FileResponse)
+async def serve_js():
+    """تقديم ملف JavaScript"""
+    try:
+        return FileResponse("script.js")
+    except FileNotFoundError:
+        return {"error": "script.js not found"}
+
+# ===== نقاط النهاية API =====
 
 @app.get("/api/v1/markets")
 async def get_markets():
+    """قائمة الأزواج المتاحة"""
     return {"status": "success", "data": get_forex_pairs()}
 
 @app.get("/api/v2/analyze/{symbol}")
 async def analyze_symbol(symbol: str, limit: int = Query(100, ge=30, le=500)):
     """تحليل حقيقي باستخدام Twelve Data API"""
     try:
-        # جلب البيانات الحية
         df = get_ohlc_data(symbol, '1min', limit)
         if df is None:
             return {"error": f"Could not fetch data for {symbol}"}
         
-        # توليد الإشارة
         signal = SignalEngine.generate_signal(df)
         if "error" in signal:
             raise HTTPException(status_code=400, detail=signal["error"])
         
-        # جلب السعر الحالي
         price = get_live_price(symbol)
         
-        # إضافة معلومات الزوج
         signal["symbol"] = symbol
         signal["current_price"] = price or signal["current_price"]
         signal["timestamp"] = datetime.now().isoformat()
@@ -77,4 +97,5 @@ async def get_strong_signal():
 
 @app.get("/health")
 async def health():
+    """فحص صحة السيرفر"""
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
