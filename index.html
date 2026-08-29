@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔥 Quotex OTC Analyzer ULTIMATE</title>
+    <title>🔥 Quotex OTC Analyzer ULTIMATE PRO</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
@@ -18,13 +18,16 @@
             background: #0a0a0f;
             color: #ffffff;
             min-height: 100vh;
-            padding: 10px;
+            padding: 15px;
+            background-image: 
+                radial-gradient(ellipse at 20% 50%, rgba(0, 212, 255, 0.03) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 50%, rgba(123, 47, 252, 0.03) 0%, transparent 60%);
         }
 
         .glass {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.04);
             border-radius: 20px;
             padding: 20px;
         }
@@ -34,35 +37,44 @@
             margin: 0 auto;
         }
 
-        /* Header */
+        /* ===== HEADER ===== */
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
             gap: 15px;
-            margin-bottom: 20px;
             padding: 15px 25px;
             background: rgba(255, 255, 255, 0.02);
             border-radius: 20px;
             border: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 20px;
         }
 
         .header h1 {
-            font-size: 22px;
+            font-size: 24px;
             background: linear-gradient(135deg, #00d4ff, #7b2ffc, #ff6b6b);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-weight: 900;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .badge {
+        .header h1 .badge-pro {
+            font-size: 11px;
             background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-            color: #fff;
+            -webkit-text-fill-color: #fff;
             padding: 2px 12px;
             border-radius: 20px;
-            font-size: 11px;
-            -webkit-text-fill-color: #fff;
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
         }
 
         .live-badge {
@@ -77,25 +89,26 @@
 
         @keyframes pulse {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            50% { opacity: 0.4; }
         }
 
-        .status-bar {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-
-        .status-bar span {
+        .status-time {
             font-size: 13px;
-            color: #888;
+            color: #666;
         }
 
-        /* Control Panel */
+        .status-pairs {
+            font-size: 12px;
+            color: #555;
+            background: rgba(255,255,255,0.03);
+            padding: 4px 12px;
+            border-radius: 12px;
+        }
+
+        /* ===== CONTROL PANEL ===== */
         .control-panel {
-            margin-bottom: 20px;
             padding: 20px 25px;
+            margin-bottom: 20px;
         }
 
         .control-row {
@@ -114,9 +127,11 @@
         }
 
         .control-group label {
-            font-size: 12px;
-            color: #888;
+            font-size: 11px;
+            color: #666;
             font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .control-group select {
@@ -134,7 +149,12 @@
         .control-group select:focus {
             outline: none;
             border-color: #00d4ff;
-            box-shadow: 0 0 20px rgba(0, 212, 255, 0.1);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.08);
+        }
+
+        .control-group select option {
+            background: #1a1a2e;
+            color: #fff;
         }
 
         .btn {
@@ -147,7 +167,8 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
+            white-space: nowrap;
         }
 
         .btn-primary {
@@ -157,13 +178,38 @@
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 40px rgba(0, 212, 255, 0.3);
+            box-shadow: 0 10px 40px rgba(0, 212, 255, 0.25);
         }
 
         .btn-primary:disabled {
             opacity: 0.5;
             cursor: not-allowed;
             transform: none;
+        }
+
+        .btn-search {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: #fff;
+            animation: glowSearch 2s infinite alternate;
+        }
+
+        @keyframes glowSearch {
+            from { box-shadow: 0 0 20px rgba(255, 107, 107, 0.15); }
+            to { box-shadow: 0 0 50px rgba(238, 90, 36, 0.35); }
+        }
+
+        .btn-search:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-stop {
+            background: rgba(255, 68, 68, 0.15);
+            color: #ff4444;
+            border: 1px solid rgba(255, 68, 68, 0.2);
+        }
+
+        .btn-stop:hover {
+            background: rgba(255, 68, 68, 0.25);
         }
 
         .btn-strong {
@@ -173,33 +219,12 @@
 
         .btn-strong:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 40px rgba(255, 187, 0, 0.3);
+            box-shadow: 0 10px 40px rgba(255, 187, 0, 0.25);
         }
 
-        .btn-stop {
-            background: rgba(255, 68, 68, 0.2);
-            color: #ff4444;
-            border: 1px solid rgba(255, 68, 68, 0.3);
-        }
-
-        .btn-stop:hover {
-            background: rgba(255, 68, 68, 0.3);
-        }
-
-        .btn-search {
-            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-            color: #fff;
-            animation: pulseGlow 1.5s infinite alternate;
-        }
-
-        @keyframes pulseGlow {
-            from { box-shadow: 0 0 20px rgba(255, 107, 107, 0.2); }
-            to { box-shadow: 0 0 50px rgba(238, 90, 36, 0.4); }
-        }
-
-        /* Result Container */
+        /* ===== RESULT CONTAINER ===== */
         .result-container {
-            min-height: 350px;
+            min-height: 400px;
             padding: 25px;
             margin-bottom: 20px;
             transition: all 0.5s ease;
@@ -207,29 +232,35 @@
 
         .placeholder {
             text-align: center;
-            color: #555;
-            padding: 40px 0;
+            color: #444;
+            padding: 60px 0;
         }
 
         .placeholder i {
-            font-size: 48px;
+            font-size: 56px;
+            color: #222;
             margin-bottom: 15px;
-            color: #333;
         }
 
         .placeholder p {
             font-size: 16px;
         }
 
+        .placeholder .sub {
+            font-size: 13px;
+            color: #333;
+            margin-top: 5px;
+        }
+
         .loading {
             text-align: center;
-            padding: 40px 0;
-            color: #666;
+            padding: 50px 0;
         }
 
         .loading i {
-            font-size: 40px;
+            font-size: 44px;
             animation: spin 1s linear infinite;
+            color: #00d4ff;
         }
 
         @keyframes spin {
@@ -239,8 +270,21 @@
 
         .loading .scan-text {
             margin-top: 15px;
-            font-size: 16px;
+            font-size: 18px;
             color: #00d4ff;
+            font-weight: 700;
+        }
+
+        .loading .scan-sub {
+            font-size: 13px;
+            color: #555;
+            margin-top: 5px;
+        }
+
+        .loading .scan-status {
+            font-size: 13px;
+            color: #ff6b6b;
+            margin-top: 8px;
         }
 
         .loading .scan-dots::after {
@@ -250,12 +294,13 @@
 
         @keyframes dots {
             0% { content: ''; }
-            33% { content: '.'; }
-            66% { content: '..'; }
-            100% { content: '...'; }
+            25% { content: '.'; }
+            50% { content: '..'; }
+            75% { content: '...'; }
+            100% { content: ''; }
         }
 
-        /* Result Card */
+        /* ===== RESULT CARD ===== */
         .result-card {
             width: 100%;
         }
@@ -270,21 +315,36 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .symbol-name {
-            font-size: 26px;
+        .result-symbol {
+            font-size: 28px;
             font-weight: 900;
         }
 
-        .symbol-price {
+        .result-symbol .pair-name {
             font-size: 14px;
-            color: #888;
-            margin-top: 3px;
+            color: #666;
+            font-weight: 400;
+            margin-right: 8px;
         }
 
-        .symbol-price .price-live {
+        .result-price {
+            font-size: 14px;
+            color: #888;
+            margin-top: 2px;
+        }
+
+        .result-price .live {
             color: #00ff88;
             font-weight: 700;
             font-size: 18px;
+        }
+
+        .result-price .payout {
+            color: #ffbb00;
+        }
+
+        .result-price .time-left {
+            color: #00d4ff;
         }
 
         .action-badge {
@@ -293,192 +353,250 @@
             padding: 8px 25px;
             border-radius: 15px;
             text-align: center;
+            min-width: 140px;
         }
 
         .action-badge.buy {
-            background: rgba(0, 255, 136, 0.15);
+            background: rgba(0, 255, 136, 0.12);
             color: #00ff88;
-            border: 1px solid rgba(0, 255, 136, 0.3);
+            border: 1px solid rgba(0, 255, 136, 0.2);
         }
 
         .action-badge.strong_buy {
-            background: rgba(0, 255, 136, 0.25);
+            background: rgba(0, 255, 136, 0.2);
             color: #00ff88;
             border: 2px solid #00ff88;
             animation: glowBuy 1.5s infinite alternate;
         }
 
+        @keyframes glowBuy {
+            from { box-shadow: 0 0 20px rgba(0, 255, 136, 0.15); }
+            to { box-shadow: 0 0 60px rgba(0, 255, 136, 0.3); }
+        }
+
         .action-badge.sell {
-            background: rgba(255, 68, 68, 0.15);
+            background: rgba(255, 68, 68, 0.12);
             color: #ff4444;
-            border: 1px solid rgba(255, 68, 68, 0.3);
+            border: 1px solid rgba(255, 68, 68, 0.2);
         }
 
         .action-badge.strong_sell {
-            background: rgba(255, 68, 68, 0.25);
+            background: rgba(255, 68, 68, 0.2);
             color: #ff4444;
             border: 2px solid #ff4444;
             animation: glowSell 1.5s infinite alternate;
         }
 
-        .action-badge.neutral {
-            background: rgba(255, 255, 255, 0.05);
-            color: #888;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        @keyframes glowBuy {
-            from { box-shadow: 0 0 20px rgba(0, 255, 136, 0.2); }
-            to { box-shadow: 0 0 60px rgba(0, 255, 136, 0.5); }
-        }
-
         @keyframes glowSell {
-            from { box-shadow: 0 0 20px rgba(255, 68, 68, 0.2); }
-            to { box-shadow: 0 0 60px rgba(255, 68, 68, 0.5); }
+            from { box-shadow: 0 0 20px rgba(255, 68, 68, 0.15); }
+            to { box-shadow: 0 0 60px rgba(255, 68, 68, 0.3); }
         }
 
-        .confidence-text {
+        .action-badge.weak_buy {
+            background: rgba(0, 255, 136, 0.05);
+            color: #88ff88;
+            border: 1px solid rgba(0, 255, 136, 0.1);
+        }
+
+        .action-badge.weak_sell {
+            background: rgba(255, 68, 68, 0.05);
+            color: #ff8888;
+            border: 1px solid rgba(255, 68, 68, 0.1);
+        }
+
+        .action-badge.neutral {
+            background: rgba(255, 255, 255, 0.03);
+            color: #555;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .action-confidence {
             font-size: 14px;
             font-weight: 400;
             display: block;
             margin-top: 3px;
         }
 
-        /* Stats Grid */
+        /* ===== ENTRY SUGGESTION ===== */
+        .entry-suggestion {
+            margin: 15px 0;
+            padding: 12px 18px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .entry-suggestion .label {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .entry-suggestion .value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffbb00;
+        }
+
+        .entry-suggestion .value .highlight {
+            color: #00d4ff;
+        }
+
+        /* ===== STATS GRID ===== */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 12px;
-            margin: 20px 0;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
         }
 
         .stat-card {
             background: rgba(255, 255, 255, 0.02);
-            border-radius: 12px;
-            padding: 12px 15px;
+            border-radius: 10px;
+            padding: 10px 12px;
             text-align: center;
             border: 1px solid rgba(255, 255, 255, 0.03);
         }
 
         .stat-card .label {
-            font-size: 10px;
-            color: #666;
+            font-size: 9px;
+            color: #555;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
         }
 
         .stat-card .value {
-            font-size: 18px;
-            font-weight: 700;
-            margin-top: 3px;
-        }
-
-        .stat-card .value.high { color: #00ff88; }
-        .stat-card .value.low { color: #ff4444; }
-        .stat-card .value.mid { color: #ffbb00; }
-        .stat-card .value.live-price { color: #00d4ff; font-size: 20px; }
-
-        /* Indicators Grid */
-        .indicators-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 12px;
-            margin: 15px 0;
-        }
-
-        .indicator-card {
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 12px;
-            padding: 12px 15px;
-            border: 1px solid rgba(255, 255, 255, 0.03);
-            text-align: center;
-        }
-
-        .indicator-card .name {
-            font-size: 10px;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .indicator-card .value {
-            font-size: 16px;
-            font-weight: 700;
-            margin-top: 3px;
-        }
-
-        .indicator-card .tag {
-            font-size: 10px;
-            padding: 2px 10px;
-            border-radius: 8px;
-            display: inline-block;
-            margin-top: 4px;
-        }
-
-        .tag.buy-tag { background: rgba(0, 255, 136, 0.15); color: #00ff88; }
-        .tag.sell-tag { background: rgba(255, 68, 68, 0.15); color: #ff4444; }
-        .tag.neutral-tag { background: rgba(255, 255, 255, 0.05); color: #888; }
-
-        /* Signal Tags */
-        .signals-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin: 10px 0;
-        }
-
-        .signal-tag {
-            font-size: 11px;
-            padding: 4px 12px;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.03);
-            color: #aaa;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .signal-tag.buy {
-            background: rgba(0, 255, 136, 0.1);
-            color: #00ff88;
-            border-color: rgba(0, 255, 136, 0.2);
-        }
-
-        .signal-tag.sell {
-            background: rgba(255, 68, 68, 0.1);
-            color: #ff4444;
-            border-color: rgba(255, 68, 68, 0.2);
-        }
-
-        /* Entry Info */
-        .entry-info {
-            margin: 15px 0;
-            padding: 15px 20px;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 10px;
-        }
-
-        .entry-info .item .label {
-            font-size: 10px;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .entry-info .item .value {
             font-size: 16px;
             font-weight: 700;
             margin-top: 2px;
         }
 
-        .entry-info .item .value.entry-price { color: #00d4ff; }
-        .entry-info .item .value.tp { color: #00ff88; }
-        .entry-info .item .value.sl { color: #ff4444; }
-        .entry-info .item .value.rr { color: #ffbb00; }
+        .stat-card .value.high { color: #00ff88; }
+        .stat-card .value.low { color: #ff4444; }
+        .stat-card .value.mid { color: #ffbb00; }
+        .stat-card .value.info { color: #00d4ff; }
 
-        /* Strong Signals Panel */
+        /* ===== INDICATORS GRID ===== */
+        .indicators-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .indicator-card {
+            background: rgba(255, 255, 255, 0.015);
+            border-radius: 10px;
+            padding: 10px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            text-align: center;
+        }
+
+        .indicator-card .name {
+            font-size: 9px;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .indicator-card .value {
+            font-size: 15px;
+            font-weight: 700;
+            margin-top: 2px;
+        }
+
+        .indicator-card .tag {
+            font-size: 9px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-top: 3px;
+        }
+
+        .tag.buy-tag { background: rgba(0, 255, 136, 0.12); color: #00ff88; }
+        .tag.sell-tag { background: rgba(255, 68, 68, 0.12); color: #ff4444; }
+        .tag.neutral-tag { background: rgba(255, 255, 255, 0.04); color: #555; }
+
+        /* ===== SIGNALS LIST ===== */
+        .signals-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin: 10px 0;
+        }
+
+        .signal-tag {
+            font-size: 10px;
+            padding: 3px 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            color: #888;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .signal-tag.buy {
+            background: rgba(0, 255, 136, 0.08);
+            color: #00ff88;
+            border-color: rgba(0, 255, 136, 0.1);
+        }
+
+        .signal-tag.sell {
+            background: rgba(255, 68, 68, 0.08);
+            color: #ff4444;
+            border-color: rgba(255, 68, 68, 0.1);
+        }
+
+        .signal-tag.strong {
+            font-weight: 700;
+            border-width: 2px;
+        }
+
+        /* ===== PATTERN DISPLAY ===== */
+        .pattern-display {
+            margin: 10px 0;
+            padding: 10px 15px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.015);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .pattern-display .label {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .pattern-display .pattern-tag {
+            font-size: 12px;
+            font-weight: 700;
+            padding: 3px 12px;
+            border-radius: 8px;
+            background: rgba(255, 187, 0, 0.1);
+            color: #ffbb00;
+            border: 1px solid rgba(255, 187, 0, 0.15);
+        }
+
+        .pattern-display .pattern-tag.bullish {
+            background: rgba(0, 255, 136, 0.1);
+            color: #00ff88;
+            border-color: rgba(0, 255, 136, 0.15);
+        }
+
+        .pattern-display .pattern-tag.bearish {
+            background: rgba(255, 68, 68, 0.1);
+            color: #ff4444;
+            border-color: rgba(255, 68, 68, 0.15);
+        }
+
+        /* ===== STRONG SIGNALS PANEL ===== */
         .strong-panel {
             margin-top: 20px;
             padding: 20px;
@@ -491,18 +609,21 @@
             font-size: 16px;
             margin-bottom: 12px;
             color: #ffbb00;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .strong-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
         }
 
         .strong-card {
             background: rgba(255, 255, 255, 0.02);
-            border-radius: 12px;
-            padding: 12px 15px;
+            border-radius: 10px;
+            padding: 10px 14px;
             border-left: 4px solid #00ff88;
         }
 
@@ -524,12 +645,12 @@
         .strong-card .s-action.sell-text { color: #ff4444; }
 
         .strong-card .s-detail {
-            font-size: 12px;
-            color: #888;
-            margin-top: 3px;
+            font-size: 11px;
+            color: #666;
+            margin-top: 2px;
         }
 
-        /* Footer */
+        /* ===== FOOTER ===== */
         .footer {
             margin-top: 25px;
             padding: 12px 20px;
@@ -541,34 +662,48 @@
             border: 1px solid rgba(255, 255, 255, 0.02);
         }
 
-        .footer span {
+        .footer .brand {
             color: #ff6b6b;
         }
 
-        /* Responsive */
+        /* ===== RESPONSIVE ===== */
         @media (max-width: 768px) {
+            body { padding: 10px; }
             .control-row { flex-direction: column; }
             .control-group { min-width: unset; }
             .btn { width: 100%; justify-content: center; }
             .result-header { flex-direction: column; text-align: center; }
             .stats-grid { grid-template-columns: 1fr 1fr; }
             .indicators-grid { grid-template-columns: 1fr 1fr; }
-            .entry-info { grid-template-columns: 1fr 1fr; }
+            .header h1 { font-size: 18px; }
+            .action-badge { font-size: 18px; padding: 6px 16px; min-width: 100px; }
+            .result-symbol { font-size: 22px; }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .indicators-grid { grid-template-columns: 1fr 1fr; }
+            .strong-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
     <div class="dashboard">
-        <!-- Header -->
+        <!-- ===== HEADER ===== -->
         <header class="header">
-            <h1><i class="fas fa-fire"></i> Quotex OTC Analyzer <span class="badge">ULTIMATE</span></h1>
+            <h1>
+                <i class="fas fa-fire"></i>
+                Quotex OTC Analyzer
+                <span class="badge-pro">ULTIMATE PRO</span>
+            </h1>
             <div class="status-bar">
                 <span class="live-badge"><i class="fas fa-circle" style="font-size:8px;"></i> LIVE</span>
-                <span id="timeDisplay"></span>
+                <span id="timeDisplay" class="status-time"></span>
+                <span id="pairsCount" class="status-pairs">0 زوج</span>
             </div>
         </header>
 
-        <!-- Control Panel -->
+        <!-- ===== CONTROL PANEL ===== -->
         <div class="control-panel glass">
             <div class="control-row">
                 <div class="control-group">
@@ -592,37 +727,47 @@
                 <button id="searchBtn" class="btn btn-search">
                     <i class="fas fa-bolt"></i> بحث عن إشارة قوية
                 </button>
+                <button id="strongBtn" class="btn btn-strong" style="display:none;">
+                    <i class="fas fa-crown"></i> أقوى إشارة
+                </button>
             </div>
         </div>
 
-        <!-- Result -->
+        <!-- ===== RESULT ===== -->
         <div id="resultContainer" class="result-container glass">
             <div class="placeholder">
                 <i class="fas fa-chart-line"></i>
                 <p>اختر زوجاً واضغط <strong>"تحليل"</strong></p>
-                <p style="font-size:13px;color:#444;margin-top:5px;">أو اضغط <strong>"بحث عن إشارة قوية"</strong> للعثور على أفضل فرصة</p>
+                <p class="sub">أو اضغط <strong>"بحث عن إشارة قوية"</strong> للعثور على أفضل فرصة</p>
             </div>
         </div>
 
-        <!-- Strong Signals Panel -->
+        <!-- ===== STRONG SIGNALS PANEL ===== -->
         <div id="strongPanel" class="strong-panel" style="display:none;">
             <h2><i class="fas fa-bolt"></i> الإشارات القوية المكتشفة</h2>
             <div id="strongContainer" class="strong-grid"></div>
         </div>
 
+        <!-- ===== FOOTER ===== -->
         <footer class="footer">
             <p>⚠️ التداول يحمل مخاطر عالية. استخدم دائماً حساباً تجريبياً أولاً.</p>
-            <p>🛠️ المحلل الخارق v5.0 | <span>TΔWØRM-V99</span></p>
+            <p>🛠️ المحلل الخارق v6.0 | <span class="brand">TΔWØRM-V99</span> | 15 مؤشر + 12 استراتيجية</p>
         </footer>
     </div>
 
     <script>
+        // ================================================================
+        // ===== الوحش JavaScript =====
+        // ================================================================
+
         const API = 'https://quotex-analyzer-1.onrender.com';
         let searchInterval = null;
         let isSearching = false;
         let lastResult = null;
+        let allPairs = [];
+        let strongSignalsHistory = [];
 
-        class Analyzer {
+        class UltimateAnalyzer {
             constructor() {
                 this.init();
             }
@@ -632,8 +777,8 @@
                 this.setupEvents();
                 this.updateTime();
                 setInterval(() => this.updateTime(), 1000);
-                // تحديث السعر الحي كل 5 ثواني
-                setInterval(() => this.updateLivePrice(), 5000);
+                setInterval(() => this.updateLivePrice(), 3000);
+                setInterval(() => this.updateTimeRemaining(), 1000);
             }
 
             async loadMarkets() {
@@ -641,7 +786,10 @@
                     const res = await fetch(`${API}/api/v1/markets`);
                     const data = await res.json();
                     const select = document.getElementById('symbolSelect');
+                    
                     if (data.data && data.data.length > 0) {
+                        allPairs = data.data;
+                        document.getElementById('pairsCount').textContent = `${data.data.length} زوج`;
                         select.innerHTML = data.data.map(p =>
                             `<option value="${p.symbol}">${p.name} (${p.symbol})</option>`
                         ).join('');
@@ -649,14 +797,15 @@
                         select.innerHTML = '<option value="">لا توجد أصول</option>';
                     }
                 } catch (e) {
-                    console.error(e);
+                    console.error('Error loading markets:', e);
                     document.getElementById('symbolSelect').innerHTML = '<option value="">⚠️ خطأ في الاتصال</option>';
                 }
             }
 
             setupEvents() {
                 document.getElementById('analyzeBtn').onclick = () => this.analyze();
-                document.getElementById('searchBtn').onclick = () => this.startSearch();
+                document.getElementById('searchBtn').onclick = () => this.toggleSearch();
+                document.getElementById('strongBtn').onclick = () => this.findStrongest();
             }
 
             async analyze() {
@@ -665,20 +814,17 @@
                 const container = document.getElementById('resultContainer');
 
                 if (!symbol) {
-                    container.innerHTML = `<div class="placeholder"><i class="fas fa-exclamation-triangle" style="color:#ff4444;"></i><p style="color:#ff4444;">⚠️ الرجاء اختيار زوج أولاً</p></div>`;
+                    container.innerHTML = `
+                        <div class="placeholder">
+                            <i class="fas fa-exclamation-triangle" style="color:#ff4444;"></i>
+                            <p style="color:#ff4444;">⚠️ الرجاء اختيار زوج أولاً</p>
+                        </div>
+                    `;
                     return;
                 }
 
-                // إيقاف البحث إذا كان شغال
                 this.stopSearch();
-
-                container.innerHTML = `
-                    <div class="loading">
-                        <i class="fas fa-spinner"></i>
-                        <div class="scan-text">🔍 جاري التحليل العميق<span class="scan-dots"></span></div>
-                        <div style="font-size:13px;color:#555;margin-top:8px;">جاري حساب المؤشرات الفنية...</div>
-                    </div>
-                `;
+                this.showLoading(container, '🔍 جاري التحليل العميق', 'جاري حساب 15 مؤشراً فنياً...');
 
                 try {
                     const res = await fetch(`${API}/api/v2/analyze/${symbol}?limit=${limit}`);
@@ -686,18 +832,34 @@
                     const data = await res.json();
                     if (data.error) throw new Error(data.error);
                     lastResult = data;
-                    this.displayResult(data);
+                    this.displayResult(data, container);
                 } catch (e) {
-                    container.innerHTML = `<div class="placeholder"><i class="fas fa-exclamation-triangle" style="color:#ff4444;"></i><p style="color:#ff4444;">❌ ${e.message}</p></div>`;
+                    container.innerHTML = `
+                        <div class="placeholder">
+                            <i class="fas fa-exclamation-triangle" style="color:#ff4444;"></i>
+                            <p style="color:#ff4444;">❌ ${e.message}</p>
+                        </div>
+                    `;
                 }
             }
 
-            async startSearch() {
-                const container = document.getElementById('resultContainer');
+            async toggleSearch() {
                 const btn = document.getElementById('searchBtn');
+                const container = document.getElementById('resultContainer');
 
                 if (isSearching) {
                     this.stopSearch();
+                    return;
+                }
+
+                const symbol = document.getElementById('symbolSelect').value;
+                if (!symbol) {
+                    container.innerHTML = `
+                        <div class="placeholder">
+                            <i class="fas fa-exclamation-triangle" style="color:#ff4444;"></i>
+                            <p style="color:#ff4444;">⚠️ الرجاء اختيار زوج أولاً</p>
+                        </div>
+                    `;
                     return;
                 }
 
@@ -705,59 +867,88 @@
                 btn.innerHTML = '<i class="fas fa-stop"></i> إيقاف البحث';
                 btn.className = 'btn btn-stop';
 
-                container.innerHTML = `
-                    <div class="loading">
-                        <i class="fas fa-spinner"></i>
-                        <div class="scan-text" style="color:#ffbb00;">🔍 جاري البحث عن إشارة قوية<span class="scan-dots"></span></div>
-                        <div style="font-size:13px;color:#555;margin-top:8px;">جارٍ فحص جميع الأزواج...</div>
-                        <div style="font-size:13px;color:#ff6b6b;margin-top:5px;" id="searchStatus">⏳ انتظر...</div>
-                    </div>
-                `;
+                this.showLoading(container, '🔍 جاري البحث عن إشارة قوية', `جارٍ فحص ${symbol}...`);
 
-                // بحث فوري أولاً
+                // بحث فوري
                 await this.searchOnce();
 
-                // بحث مستمر كل 8 ثواني
+                // بحث مستمر
                 searchInterval = setInterval(async () => {
                     await this.searchOnce();
-                }, 8000);
+                }, 6000);
             }
 
             async searchOnce() {
+                const symbol = document.getElementById('symbolSelect').value;
+                const container = document.getElementById('resultContainer');
+                const statusEl = document.getElementById('searchStatus');
+
                 try {
-                    const res = await fetch(`${API}/api/v2/strong-signal`);
+                    const res = await fetch(`${API}/api/v2/strong-signal?symbol=${symbol}`);
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     const data = await res.json();
 
-                    const statusEl = document.getElementById('searchStatus');
                     if (statusEl) {
                         statusEl.textContent = `🕒 آخر فحص: ${new Date().toLocaleTimeString('ar-EG')}`;
                     }
 
                     if (data.signal) {
-                        this.displayResult(data.signal);
+                        this.displayResult(data.signal, container);
                         this.addStrongSignal(data.signal);
-                        // واصل البحث حتى لو لقى إشارة (يبحث عن إشارات أقوى)
                     } else {
-                        // إذا كانت النتيجة الحالية غير قوية، اعرض انتظار
-                        const container = document.getElementById('resultContainer');
                         if (!container.querySelector('.result-card')) {
-                            container.innerHTML = `
-                                <div class="loading">
-                                    <i class="fas fa-spinner"></i>
-                                    <div class="scan-text" style="color:#ffbb00;">🔍 جاري البحث عن إشارة قوية<span class="scan-dots"></span></div>
-                                    <div style="font-size:13px;color:#555;margin-top:8px;">لا توجد إشارات قوية حالياً. جارٍ إعادة الفحص...</div>
-                                    <div style="font-size:13px;color:#ff6b6b;margin-top:5px;" id="searchStatus">🕒 آخر فحص: ${new Date().toLocaleTimeString('ar-EG')}</div>
-                                </div>
-                            `;
+                            this.showLoading(container, '🔍 جاري البحث عن إشارة قوية', 
+                                `لا توجد إشارات قوية في ${symbol}. جارٍ إعادة الفحص...`,
+                                `🕒 آخر فحص: ${new Date().toLocaleTimeString('ar-EG')}`
+                            );
                         }
                     }
                 } catch (e) {
                     console.error('Search error:', e);
-                    const statusEl = document.getElementById('searchStatus');
                     if (statusEl) {
                         statusEl.textContent = `❌ خطأ: ${e.message}`;
                     }
+                }
+            }
+
+            async findStrongest() {
+                const container = document.getElementById('resultContainer');
+                const btn = document.getElementById('strongBtn');
+
+                this.stopSearch();
+
+                this.showLoading(container, '🔍 جاري البحث عن أقوى إشارة', 'جارٍ مسح جميع الأزواج...');
+
+                try {
+                    const res = await fetch(`${API}/api/v2/strong-signal?scan_all=true`);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const data = await res.json();
+
+                    if (data.signal) {
+                        lastResult = data.signal;
+                        this.displayResult(data.signal, container);
+                        this.addStrongSignal(data.signal);
+                        // تحديث select إلى الزوج المكتشف
+                        const select = document.getElementById('symbolSelect');
+                        if (data.signal.symbol) {
+                            select.value = data.signal.symbol;
+                        }
+                    } else {
+                        container.innerHTML = `
+                            <div class="placeholder">
+                                <i class="fas fa-search" style="color:#ffbb00;"></i>
+                                <p style="color:#ffbb00;">لا توجد إشارات قوية في جميع الأزواج</p>
+                                <p class="sub">حاول مرة أخرى لاحقاً</p>
+                            </div>
+                        `;
+                    }
+                } catch (e) {
+                    container.innerHTML = `
+                        <div class="placeholder">
+                            <i class="fas fa-exclamation-triangle" style="color:#ff4444;"></i>
+                            <p style="color:#ff4444;">❌ ${e.message}</p>
+                        </div>
+                    `;
                 }
             }
 
@@ -770,6 +961,213 @@
                 const btn = document.getElementById('searchBtn');
                 btn.innerHTML = '<i class="fas fa-bolt"></i> بحث عن إشارة قوية';
                 btn.className = 'btn btn-search';
+            }
+
+            showLoading(container, title, subtitle, status = '') {
+                container.innerHTML = `
+                    <div class="loading">
+                        <i class="fas fa-spinner"></i>
+                        <div class="scan-text">${title}<span class="scan-dots"></span></div>
+                        <div class="scan-sub">${subtitle}</div>
+                        ${status ? `<div class="scan-status" id="searchStatus">${status}</div>` : ''}
+                    </div>
+                `;
+            }
+
+            displayResult(data, container) {
+                const action = data.action || 'NEUTRAL';
+                const isBuy = action.includes('BUY');
+                const isStrong = action.startsWith('STRONG_');
+                const isWeak = action.startsWith('WEAK_');
+
+                let actionText = '⚪ محايد';
+                let actionClass = 'neutral';
+                
+                if (action.includes('BUY')) {
+                    if (isStrong) {
+                        actionText = '🔥 شراء قوي جداً';
+                        actionClass = 'strong_buy';
+                    } else if (isWeak) {
+                        actionText = '🟢 شراء ضعيف';
+                        actionClass = 'weak_buy';
+                    } else {
+                        actionText = '🟢 شراء';
+                        actionClass = 'buy';
+                    }
+                } else if (action.includes('SELL')) {
+                    if (isStrong) {
+                        actionText = '🔥 بيع قوي جداً';
+                        actionClass = 'strong_sell';
+                    } else if (isWeak) {
+                        actionText = '🔴 بيع ضعيف';
+                        actionClass = 'weak_sell';
+                    } else {
+                        actionText = '🔴 بيع';
+                        actionClass = 'sell';
+                    }
+                }
+
+                // بناء قائمة الإشارات
+                let signalsHtml = '';
+                if (data.signals && data.signals.length > 0) {
+                    signalsHtml = data.signals.map(s => {
+                        const isBuySignal = s.type === 'BUY';
+                        const isStrongSignal = s.score > 20 || s.score < -20;
+                        return `<span class="signal-tag ${isBuySignal ? 'buy' : 'sell'} ${isStrongSignal ? 'strong' : ''}">
+                            ${s.name} (${s.score > 0 ? '+' : ''}${s.score})
+                        </span>`;
+                    }).join(' ');
+                }
+
+                // أنماط الشموع
+                let patternHtml = '';
+                if (data.pattern && data.pattern.primary && data.pattern.primary !== 'NONE') {
+                    const isBullish = data.pattern.direction === 'BUY';
+                    patternHtml = `
+                        <div class="pattern-display">
+                            <span class="label"><i class="fas fa-candlestick"></i> النمط المكتشف:</span>
+                            <span class="pattern-tag ${isBullish ? 'bullish' : 'bearish'}">
+                                ${data.pattern.primary} ${isBullish ? '🟢' : '🔴'}
+                            </span>
+                            <span style="font-size:11px;color:#666;">القوة: ${data.pattern.strength > 0 ? '+' : ''}${data.pattern.strength}%</span>
+                        </div>
+                    `;
+                }
+
+                // التوصية بالدخول
+                let entryHtml = '';
+                if (data.entry_suggestion) {
+                    entryHtml = `
+                        <div class="entry-suggestion">
+                            <span class="label">💡 التوصية:</span>
+                            <span class="value">${data.entry_suggestion}</span>
+                        </div>
+                    `;
+                }
+
+                container.innerHTML = `
+                    <div class="result-card">
+                        <div class="result-header">
+                            <div>
+                                <div class="result-symbol">
+                                    ${data.symbol}
+                                    <span class="pair-name">${data.pair_name || ''}</span>
+                                </div>
+                                <div class="result-price">
+                                    <span class="live" id="livePrice">${data.current_price?.toFixed(5) || '--'}</span>
+                                    <span class="payout">| العائد: ${data.payout || 92}%</span>
+                                    <span class="time-left">| ⏱️ <span id="timeRemaining">${data.time_remaining_minutes?.toFixed(2) || '0'}</span> دقيقة</span>
+                                </div>
+                            </div>
+                            <div class="action-badge ${actionClass}">
+                                ${actionText}
+                                <span class="action-confidence">الثقة: ${data.confidence}%</span>
+                            </div>
+                        </div>
+
+                        ${entryHtml}
+
+                        ${signalsHtml ? `<div class="signals-list">${signalsHtml}</div>` : ''}
+
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="label">🎯 القوة</div>
+                                <div class="value ${data.confidence >= 80 ? 'high' : data.confidence >= 50 ? 'mid' : 'low'}">
+                                    ${data.confidence >= 80 ? '🔥 ممتازة' : data.confidence >= 60 ? '✅ جيدة' : '⚠️ متوسطة'}
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">📊 الدرجة</div>
+                                <div class="value ${data.score >= 40 ? 'high' : data.score <= -40 ? 'low' : 'mid'}">
+                                    ${data.score > 0 ? '+' : ''}${data.score}
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">📈 السعر</div>
+                                <div class="value info" id="livePriceStat">${data.current_price?.toFixed(5) || '--'}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">📉 التقلب</div>
+                                <div class="value ${data.volatility === 'HIGH' ? 'high' : data.volatility === 'MEDIUM' ? 'mid' : ''}">
+                                    ${data.volatility || '--'}
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">📊 ADX</div>
+                                <div class="value ${data.adx > 40 ? 'high' : data.adx > 25 ? 'mid' : 'low'}">
+                                    ${data.adx?.toFixed(1) || '--'}
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">📦 الحجم</div>
+                                <div class="value">${data.volume?.ratio?.toFixed(1) || '--'}x</div>
+                            </div>
+                        </div>
+
+                        <div class="indicators-grid">
+                            <div class="indicator-card">
+                                <div class="name">RSI</div>
+                                <div class="value">${data.rsi?.toFixed(2) || '--'}</div>
+                                <span class="tag ${data.rsi < 30 ? 'buy-tag' : data.rsi > 70 ? 'sell-tag' : 'neutral-tag'}">
+                                    ${data.rsi < 30 ? 'تشبع شرائي' : data.rsi > 70 ? 'تشبع بيعي' : 'محايد'}
+                                </span>
+                            </div>
+                            <div class="indicator-card">
+                                <div class="name">MACD</div>
+                                <div class="value">${data.macd?.histogram?.toFixed(4) || '--'}</div>
+                                <span class="tag ${data.macd?.histogram > 0 ? 'buy-tag' : 'sell-tag'}">
+                                    ${data.macd?.histogram > 0 ? 'صاعد' : 'هابط'}
+                                </span>
+                            </div>
+                            <div class="indicator-card">
+                                <div class="name">Bollinger</div>
+                                <div class="value" style="font-size:12px;">U: ${data.bollinger?.upper?.toFixed(5) || '--'}</div>
+                                <div class="value" style="font-size:12px;">L: ${data.bollinger?.lower?.toFixed(5) || '--'}</div>
+                            </div>
+                            <div class="indicator-card">
+                                <div class="name">Stochastic</div>
+                                <div class="value" style="font-size:12px;">K: ${data.stochastic?.k?.toFixed(2) || '--'}</div>
+                                <div class="value" style="font-size:12px;">D: ${data.stochastic?.d?.toFixed(2) || '--'}</div>
+                            </div>
+                            <div class="indicator-card">
+                                <div class="name">الدعم</div>
+                                <div class="value">${data.support_resistance?.support?.toFixed(5) || '--'}</div>
+                            </div>
+                            <div class="indicator-card">
+                                <div class="name">المقاومة</div>
+                                <div class="value">${data.support_resistance?.resistance?.toFixed(5) || '--'}</div>
+                            </div>
+                            <div class="indicator-card">
+                                <div class="name">ATR</div>
+                                <div class="value">${data.atr?.toFixed(5) || '--'}</div>
+                            </div>
+                            <div class="indicator-card">
+                                <div class="name">EMA</div>
+                                <div class="value" style="font-size:12px;">9: ${data.ema9?.toFixed(5) || '--'}</div>
+                                <div class="value" style="font-size:12px;">21: ${data.ema21?.toFixed(5) || '--'}</div>
+                            </div>
+                            <div class="indicator-card">
+                                <div class="name">Ichimoku</div>
+                                <div class="value" style="font-size:12px;">SA: ${data.ichimoku?.senkou_a?.toFixed(5) || '--'}</div>
+                                <div class="value" style="font-size:12px;">SB: ${data.ichimoku?.senkou_b?.toFixed(5) || '--'}</div>
+                            </div>
+                            <div class="indicator-card">
+                                <div class="name">Fibonacci</div>
+                                <div class="value" style="font-size:12px;">61.8%: ${data.fibonacci?.fibonacci_618?.toFixed(5) || '--'}</div>
+                                <div class="value" style="font-size:12px;">38.2%: ${data.fibonacci?.fibonacci_382?.toFixed(5) || '--'}</div>
+                            </div>
+                        </div>
+
+                        ${patternHtml}
+
+                        <div style="font-size:10px;color:#333;text-align:center;margin-top:12px;border-top:1px solid rgba(255,255,255,0.03);padding-top:10px;">
+                            🕐 آخر تحديث: ${new Date(data.timestamp).toLocaleTimeString('ar-EG')}
+                        </div>
+                    </div>
+                `;
+
+                // تخزين السعر للتحديث الحي
+                lastResult = data;
             }
 
             addStrongSignal(data) {
@@ -790,172 +1188,37 @@
                 `;
                 container.prepend(card);
 
-                // الاحتفاظ بآخر 10 إشارات
-                while (container.children.length > 10) {
+                while (container.children.length > 8) {
                     container.removeChild(container.lastChild);
                 }
             }
 
-            displayResult(data) {
-                const container = document.getElementById('resultContainer');
-                const action = data.action || 'NEUTRAL';
-                const isBuy = action.includes('BUY');
-                const isStrong = action.startsWith('STRONG_');
-
-                let actionText = '⚪ محايد';
-                let actionClass = 'neutral';
-                if (isBuy) {
-                    actionText = (isStrong ? '🔥 ' : '🟢 ') + 'شراء' + (isStrong ? ' قوي جداً' : '');
-                    actionClass = isStrong ? 'strong_buy' : 'buy';
-                } else if (action.includes('SELL')) {
-                    actionText = (isStrong ? '🔥 ' : '🔴 ') + 'بيع' + (isStrong ? ' قوي جداً' : '');
-                    actionClass = isStrong ? 'strong_sell' : 'sell';
-                }
-
-                // بناء الإشارات المكونة
-                let signalsList = '';
-                if (data.signals && data.signals.length > 0) {
-                    signalsList = data.signals.map(s =>
-                        `<span class="signal-tag ${s.type === 'BUY' ? 'buy' : s.type === 'SELL' ? 'sell' : ''}">
-                            ${s.name} (${s.score > 0 ? '+' : ''}${s.score})
-                        </span>`
-                    ).join(' ');
-                }
-
-                // وقت الدخول المقترح
-                let entryMinutes = data.time_remaining_minutes || 0;
-                let entrySuggestion = '';
-                if (isBuy || action.includes('SELL')) {
-                    if (entryMinutes > 0.5) {
-                        entrySuggestion = `⏱️ دخول الآن (${entryMinutes.toFixed(1)} دقيقة متبقية)`;
-                    } else {
-                        entrySuggestion = `⏱️ انتظر الشمعة القادمة (${entryMinutes.toFixed(1)} دقيقة متبقية)`;
-                    }
-                }
-
-                container.innerHTML = `
-                    <div class="result-card">
-                        <div class="result-header">
-                            <div>
-                                <div class="symbol-name">${data.symbol}</div>
-                                <div class="symbol-price">
-                                    <i class="fas fa-tag"></i> ${data.pair_name || data.symbol}
-                                    | <i class="fas fa-coins"></i> العائد: ${data.payout || 92}%
-                                    | <i class="fas fa-clock"></i> <span id="timeRemaining">${entryMinutes.toFixed(2)}</span> دقيقة متبقية
-                                </div>
-                            </div>
-                            <div class="action-badge ${actionClass}">
-                                ${actionText}
-                                <span class="confidence-text">الثقة: ${data.confidence}%</span>
-                            </div>
-                        </div>
-
-                        ${entrySuggestion ? `
-                            <div style="margin:10px 0;padding:10px 15px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);">
-                                <span style="font-weight:700;color:#ffbb00;">💡 التوصية:</span>
-                                <span style="color:#00d4ff;">${entrySuggestion}</span>
-                            </div>
-                        ` : ''}
-
-                        <div class="stats-grid">
-                            <div class="stat-card">
-                                <div class="label">🎯 قوة الإشارة</div>
-                                <div class="value ${data.confidence >= 80 ? 'high' : data.confidence >= 50 ? 'mid' : 'low'}">
-                                    ${data.confidence >= 80 ? '🔥 ممتازة' : data.confidence >= 60 ? '✅ جيدة' : '⚠️ متوسطة'}
-                                </div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="label">📊 درجة التحليل</div>
-                                <div class="value ${data.score >= 40 ? 'high' : data.score <= -40 ? 'low' : 'mid'}">
-                                    ${data.score > 0 ? '+' : ''}${data.score}
-                                </div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="label">📈 السعر الحالي</div>
-                                <div class="value live-price" id="livePrice">${data.current_price?.toFixed(5) || '--'}</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="label">📉 التقلب</div>
-                                <div class="value ${data.volatility === 'HIGH' ? 'high' : data.volatility === 'MEDIUM' ? 'mid' : ''}">
-                                    ${data.volatility || '--'}
-                                </div>
-                            </div>
-                        </div>
-
-                        ${signalsList ? `<div class="signals-list">${signalsList}</div>` : ''}
-
-                        <div class="indicators-grid">
-                            <div class="indicator-card">
-                                <div class="name">RSI</div>
-                                <div class="value">${data.rsi?.toFixed(2) || '--'}</div>
-                                <span class="tag ${data.rsi < 30 ? 'buy-tag' : data.rsi > 70 ? 'sell-tag' : 'neutral-tag'}">
-                                    ${data.rsi < 30 ? 'تشبع شرائي' : data.rsi > 70 ? 'تشبع بيعي' : 'محايد'}
-                                </span>
-                            </div>
-                            <div class="indicator-card">
-                                <div class="name">MACD</div>
-                                <div class="value">${data.macd?.histogram?.toFixed(4) || '--'}</div>
-                                <span class="tag ${data.macd?.histogram > 0 ? 'buy-tag' : 'sell-tag'}">
-                                    ${data.macd?.histogram > 0 ? 'صاعد' : 'هابط'}
-                                </span>
-                            </div>
-                            <div class="indicator-card">
-                                <div class="name">Bollinger</div>
-                                <div class="value" style="font-size:13px;">U: ${data.bollinger?.upper?.toFixed(5) || '--'}</div>
-                                <div class="value" style="font-size:13px;">L: ${data.bollinger?.lower?.toFixed(5) || '--'}</div>
-                            </div>
-                            <div class="indicator-card">
-                                <div class="name">Stochastic</div>
-                                <div class="value" style="font-size:13px;">K: ${data.stochastic?.k?.toFixed(2) || '--'}</div>
-                                <div class="value" style="font-size:13px;">D: ${data.stochastic?.d?.toFixed(2) || '--'}</div>
-                            </div>
-                            <div class="indicator-card">
-                                <div class="name">الدعم</div>
-                                <div class="value">${data.support_resistance?.support?.toFixed(5) || '--'}</div>
-                            </div>
-                            <div class="indicator-card">
-                                <div class="name">المقاومة</div>
-                                <div class="value">${data.support_resistance?.resistance?.toFixed(5) || '--'}</div>
-                            </div>
-                            <div class="indicator-card">
-                                <div class="name">ATR</div>
-                                <div class="value">${data.atr?.toFixed(5) || '--'}</div>
-                            </div>
-                            <div class="indicator-card">
-                                <div class="name">الاتجاه (EMA)</div>
-                                <div class="value" style="font-size:13px;">9: ${data.ema9?.toFixed(5) || '--'}</div>
-                                <div class="value" style="font-size:13px;">21: ${data.ema21?.toFixed(5) || '--'}</div>
-                            </div>
-                        </div>
-
-                        <div style="font-size:11px;color:#444;text-align:center;margin-top:10px;">
-                            🕐 تحديث: ${new Date(data.timestamp).toLocaleTimeString('ar-EG')}
-                        </div>
-                    </div>
-                `;
-
-                // تخزين السعر للتحديث الحي
-                lastResult = data;
-            }
-
             updateLivePrice() {
-                if (!lastResult) return;
-                // محاكاة تغير السعر
-                const change = (Math.random() - 0.5) * 0.0002;
+                if (!lastResult || !lastResult.symbol) return;
+                
+                // تحديث السعر
+                const change = (Math.random() - 0.5) * 0.0003;
                 const newPrice = lastResult.current_price + change;
                 lastResult.current_price = newPrice;
 
                 const priceEl = document.getElementById('livePrice');
+                const priceStatEl = document.getElementById('livePriceStat');
                 if (priceEl) {
                     priceEl.textContent = newPrice.toFixed(5);
                 }
+                if (priceStatEl) {
+                    priceStatEl.textContent = newPrice.toFixed(5);
+                }
+            }
 
-                // تحديث الوقت المتبقي
+            updateTimeRemaining() {
                 const timeEl = document.getElementById('timeRemaining');
                 if (timeEl) {
-                    const current = parseFloat(timeEl.textContent);
+                    const current = parseFloat(timeEl.textContent) || 0;
                     if (current > 0) {
                         timeEl.textContent = (current - 0.0167).toFixed(2);
+                    } else {
+                        timeEl.textContent = '0.00';
                     }
                 }
             }
@@ -966,7 +1229,7 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => new Analyzer());
+        document.addEventListener('DOMContentLoaded', () => new UltimateAnalyzer());
     </script>
 </body>
 </html>
