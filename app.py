@@ -1,7 +1,6 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
 import os
 from datetime import datetime
 import pandas as pd
@@ -22,7 +21,6 @@ app.add_middleware(
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_index():
-    """تقديم الصفحة الرئيسية"""
     try:
         with open("index.html", "r", encoding="utf-8") as f:
             html_content = f.read()
@@ -32,7 +30,6 @@ async def serve_index():
 
 @app.get("/style.css", response_class=FileResponse)
 async def serve_css():
-    """تقديم ملف CSS"""
     try:
         return FileResponse("style.css")
     except FileNotFoundError:
@@ -40,7 +37,6 @@ async def serve_css():
 
 @app.get("/script.js", response_class=FileResponse)
 async def serve_js():
-    """تقديم ملف JavaScript"""
     try:
         return FileResponse("script.js")
     except FileNotFoundError:
@@ -50,12 +46,10 @@ async def serve_js():
 
 @app.get("/api/v1/markets")
 async def get_markets():
-    """قائمة الأزواج المتاحة"""
     return {"status": "success", "data": get_forex_pairs()}
 
 @app.get("/api/v2/analyze/{symbol}")
 async def analyze_symbol(symbol: str, limit: int = Query(100, ge=30, le=500)):
-    """تحليل حقيقي باستخدام Twelve Data API"""
     try:
         df = get_ohlc_data(symbol, '1min', limit)
         if df is None:
@@ -77,14 +71,13 @@ async def analyze_symbol(symbol: str, limit: int = Query(100, ge=30, le=500)):
 
 @app.get("/api/v2/strong-signal")
 async def get_strong_signal():
-    """البحث عن أقوى إشارة في جميع الأزواج"""
     pairs = get_forex_pairs()
     best = None
     best_confidence = 0
     
     for pair in pairs:
         try:
-            result = await analyze_symbol(pair["symbol"].replace("/", ""))
+            result = await analyze_symbol(pair["symbol"])
             if result and result["action"] in ["STRONG_BUY", "STRONG_SELL"] and result["confidence"] > best_confidence:
                 best = result
                 best_confidence = result["confidence"]
@@ -97,5 +90,4 @@ async def get_strong_signal():
 
 @app.get("/health")
 async def health():
-    """فحص صحة السيرفر"""
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
